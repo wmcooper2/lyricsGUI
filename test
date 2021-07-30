@@ -1,0 +1,3 @@
+#!/bin/bash
+pytest --ignore=Lyrics --ignore=old_search --ignore=old_lyricsearch --ignore=old_scraper
+# coverage run -m pytest --ignore=Lyrics --ignore=old_search --ignore=old_lyricsearch --ignore=old_scraper

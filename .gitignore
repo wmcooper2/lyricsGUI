@@ -1,0 +1,10 @@
+.DS_Store
+__pycache__
+venv
+tars
+results
+support
+*.db
+*.tar
+*.gz
+

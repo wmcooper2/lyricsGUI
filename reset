@@ -1,0 +1,6 @@
+#!/bin/bash
+rm {1..20}.tar 2> /dev/null
+echo "Removed numbered tarballs from $(pwd)"
+cd support/
+rm -r * 2> /dev/null
+echo "Removed everything from $(pwd)"
