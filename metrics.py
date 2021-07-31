@@ -10,7 +10,7 @@ from db_util import (
     add_score_to_db,
     open_db)
 from metrics_util import (
-    calculate_english_score,
+    english_score,
     load_songs,
     save_word_list,
     word_set)
@@ -37,7 +37,7 @@ from metrics_util import (
 
 #     counter = 0
 #     for song in songs:
-#         score = calculate_english_score(song, ref_dict)
+#         score = english_score(song, ref_dict)
     #     bad_words = not_found.union(bad_words)
 #         add_score_to_db(db, score, song[1])
 #         counter += 1
@@ -62,7 +62,7 @@ def add_english_score_to_db(tarname: str):
     # This whole block's purpose is to calculate the good English words, and add it to the DB
     counter = 0
     for song in songs:
-        score = calculate_english_score(song, ref_dict)
+        score = english_score(song, ref_dict)
     #     bad_words = not_found.union(bad_words)
         add_score_to_db(db, score, song[1])
         counter += 1

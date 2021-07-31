@@ -25,7 +25,7 @@ from file_util import (
     remove_all_punct,
     search,
     tar_contents)
-from metrics_util import calculate_english_score, load_songs, word_set
+from metrics_util import english_score, load_songs, word_set
 
 
 if __name__ == "__main__":
@@ -89,7 +89,7 @@ if __name__ == "__main__":
         for song in enumerate(songs):
             lyrics = songs.extractfile(song[1])
             lyrics = lyrics.read().decode("utf-8")
-            score = calculate_english_score(lyrics, ref_dict)
+            score = english_score(lyrics, ref_dict)
 
             if score >= user_score:
                 data = songs.extractfile(song[1]) 

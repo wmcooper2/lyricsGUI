@@ -46,6 +46,13 @@ lyrics = tar.extractfile("Volumes/WHITE1000/DATA/LYRICS/lyrics in sets/lyrics/bl
 Bytes objects are returned from the tarfile.
 
 
+### Load a Reference Dictionary
+```python
+dictionary_name = "/usr/share/dict/web2"
+dictionary = word_set(dictionary_name)
+```
+
+
 
 ### Get File Name
 ```python
@@ -72,28 +79,35 @@ name = Path(names[1000])
 >>> s = tar.extractfile("Volumes/WHITE1000/DATA/LYRICS/lyrics in sets/lyrics/block99/Kataklysm_Face the Face of War.txt").read()
 >>> unescaped = re.sub("\\r\\n", ".", s.decode("utf-8"))
 >>> unescaped
->>> "This time we went to far.This time we open the scars.To feel destruction inside this worlds addiction.Last dance for the new generation.Beloved ones virgins of war.Neverseen the true colors of sufferance..Forever face the face of war.Forever we shall face the face of war.We shall not fall, we shall stand tall.In the midst of all this pain.We will face the face of war..'Til the end of time, worlds will collide.People will die.And everyone you trust will turn on you.To save themselves from the devil's grip..Stay on guard, make sure you don't drift away.Prepare for battle bloodbath of innocent man.Guilty for taking life for taking life!..Corpse of dead man surround me.Release me from this sanctuary..Forever face the face of war.Forever we shall face the face of war..We shall not fall, we shall stand tall.In the midst of all this pain.We will face the face of war"
 ```
+> "This time we went to far.This time we open the scars.To feel destruction inside this worlds addiction.Last dance for the new generation.Beloved ones virgins of war.Neverseen the true colors of sufferance..Forever face the face of war.Forever we shall face the face of war.We shall not fall, we shall stand tall.In the midst of all this pain.We will face the face of war..'Til the end of time, worlds will collide.People will die.And everyone you trust will turn on you.To save themselves from the devil's grip..Stay on guard, make sure you don't drift away.Prepare for battle bloodbath of innocent man.Guilty for taking life for taking life!..Corpse of dead man surround me.Release me from this sanctuary..Forever face the face of war.Forever we shall face the face of war..We shall not fall, we shall stand tall.In the midst of all this pain.We will face the face of war"
+
+
 
 ### Replace the double period with a single period
 ```python
 >>> unescaped = re.sub("\.\.", ".", unescaped)
 >>> unescaped
->>> "This time we went to far.This time we open the scars.To feel destruction inside this worlds addiction.Last dance for the new generation.Beloved ones virgins of war.Neverseen the true colors of sufferance.Forever face the face of war.Forever we shall face the face of war.We shall not fall, we shall stand tall.In the midst of all this pain.We will face the face of war.'Til the end of time, worlds will collide.People will die.And everyone you trust will turn on you.To save themselves from the devil's grip.Stay on guard, make sure you don't drift away.Prepare for battle bloodbath of innocent man.Guilty for taking life for taking life!.Corpse of dead man surround me.Release me from this sanctuary.Forever face the face of war.Forever we shall face the face of war.We shall not fall, we shall stand tall.In the midst of all this pain.We will face the face of war"
 ```
+> "This time we went to far.This time we open the scars.To feel destruction inside this worlds addiction.Last dance for the new generation.Beloved ones virgins of war.Neverseen the true colors of sufferance.Forever face the face of war.Forever we shall face the face of war.We shall not fall, we shall stand tall.In the midst of all this pain.We will face the face of war.'Til the end of time, worlds will collide.People will die.And everyone you trust will turn on you.To save themselves from the devil's grip.Stay on guard, make sure you don't drift away.Prepare for battle bloodbath of innocent man.Guilty for taking life for taking life!.Corpse of dead man surround me.Release me from this sanctuary.Forever face the face of war.Forever we shall face the face of war.We shall not fall, we shall stand tall.In the midst of all this pain.We will face the face of war"
+
+
 
 ### Replace ellipses with a space
 ```python
 >>> unescaped = re.sub("\.\.\.", "", unescaped)
 >>> unescaped
->>> "This time we went to far.This time we open the scars.To feel destruction inside this worlds addiction.Last dance for the new generation.Beloved ones virgins of war.Neverseen the true colors of sufferance.Forever face the face of war.Forever we shall face the face of war.We shall not fall, we shall stand tall.In the midst of all this pain.We will face the face of war.'Til the end of time, worlds will collide.People will die.And everyone you trust will turn on you.To save themselves from the devil's grip.Stay on guard, make sure you don't drift away.Prepare for battle bloodbath of innocent man.Guilty for taking life for taking life!.Corpse of dead man surround me.Release me from this sanctuary.Forever face the face of war.Forever we shall face the face of war.We shall not fall, we shall stand tall.In the midst of all this pain.We will face the face of war"
 ```
+> "This time we went to far.This time we open the scars.To feel destruction inside this worlds addiction.Last dance for the new generation.Beloved ones virgins of war.Neverseen the true colors of sufferance.Forever face the face of war.Forever we shall face the face of war.We shall not fall, we shall stand tall.In the midst of all this pain.We will face the face of war.'Til the end of time, worlds will collide.People will die.And everyone you trust will turn on you.To save themselves from the devil's grip.Stay on guard, make sure you don't drift away.Prepare for battle bloodbath of innocent man.Guilty for taking life for taking life!.Corpse of dead man surround me.Release me from this sanctuary.Forever face the face of war.Forever we shall face the face of war.We shall not fall, we shall stand tall.In the midst of all this pain.We will face the face of war"
+
+
 
 ### Split the sentences based on the period
 ```python
 from pprint import pprint
 pprint(unescaped.split("."))
->>> ['This time we went to far',
+```
+> ['This time we went to far',
  'This time we open the scars',
  'To feel destruction inside this worlds addiction',
  'Last dance for the new generation',
@@ -118,4 +132,58 @@ pprint(unescaped.split("."))
  'We shall not fall, we shall stand tall',
  'In the midst of all this pain',
  'We will face the face of war']
+
+
+
+### Pickle a string
+```python
+myfile = open("lyrics.pickle", "wb")
+pickle.dump(no_isolated_t, myfile)
+myfile.close()
+myfile = open("lyrics.pickle", "rb")
+text = pickle.load(myfile)
+myfile.close()
+>>> text
 ```
+> 'this time we went to far this time we open the scars to feel destruction inside this worlds addiction last dance for the new generation beloved ones virgins of war neverseen the true colors of sufferance forever face the face of war forever we shall face the face of war we shall not fall we shall stand tall in the midst of all this pain we will face the face of war til the end of time worlds will collide people will die and everyone you trust will turn on you to save themselves from the devil grip stay on guard make sure you do not drift away prepare for battle bloodbath of innocent man guilty for taking life for taking life corpse of dead man surround me release me from this sanctuary forever face the face of war forever we shall face the face of war we shall not fall we shall stand tall in the midst of all this pain we will face the face of war'
+
+
+
+### Pickle a set
+```python
+set_ = set(no_isolated_t.split(" ")
+myfile = open("lyricset.pickle", "wb")
+pickle.dump(set_, myfile)
+myfile.close()
+myfile = open("lyricset.pickle", "rb")
+loaded_set = pickle.load(myfile)
+myfile.close()
+>>> loaded_set
+```
+> {'collide', 'do', 'beloved', 'of', 'corpse', 'tall', 'people', 'virgins', 'stand', 'guard', 'time', 'pain', 'this', 'true', 'prepare', 'the', 'generation', 'neverseen', 'we', 'all', 'destruction', 'you', 'forever', 'dead', 'in', 'inside', 'on', 'devil', 'die', 'turn', 'sure', 'for', 'make', 'addiction', 'scars', 'new', 'worlds', 'from', 'ones', 'stay', 'shall', 'battle', 'innocent', 'bloodbath', 'taking', 'surround', 'will', 'war', 'me', 'far', 'dance', 'went', 'to', 'man', 'sanctuary', 'colors', 'last', 'away', 'and', 'face', 'sufferance', 'themselves', 'everyone', 'end', 'trust', 'release', 'midst', 'not', 'save', 'til', 'fall', 'guilty', 'open', 'grip', 'feel', 'drift', 'life'}
+
+
+
+### Filter the words that appear in the built-in dictionary
+```python
+lyrics_set = set(no_isolated_t.split())
+valid_words = words_in_dict(lyrics_set, dictionary)
+>>> valid_words     # about 92% valid words
+```
+> {'pain', 'will', 'fall', 'make', 'you', 'do', 'turn', 'not', 'surround', 'all', 'die', 'away', 'release', 'new', 'people', 'save', 'innocent', 'end', 'open', 'from', 'for', 'went', 'shall', 'collide', 'beloved', 'everyone', 'life', 'and', 'dead', 'sanctuary', 'war', 'corpse', 'themselves', 'far', 'me', 'midst', 'til', 'man', 'guilty', 'guard', 'last', 'colors', 'tall', 'addiction', 'grip', 'stand', 'the', 'generation', 'destruction', 'to', 'in', 'prepare', 'of', 'devil', 'drift', 'feel', 'we', 'dance', 'true', 'forever', 'inside', 'sufferance', 'time', 'taking', 'sure', 'battle', 'on', 'face', 'stay', 'this', 'trust'}
+
+
+
+
+
+
+
+
+# Important things to know about the program
+
+## The major word collection is a trie
+* I chose a trie because I wanted to have the ability to perform prefix lookups as well as membership tests on words that appear anywhere in the whole collection of lyrics files.  
+* 
+
+
+### Make a trie

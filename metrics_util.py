@@ -24,7 +24,7 @@ Song = namedtuple("Song", ["artist", "name", "filePath"])
 stemmer = PorterStemmer()
 
 
-def calculate_english_score(lyrics: str, ref_dict: Set[str]) -> int:
+def english_score(lyrics: str, ref_dict: Set[str]) -> int:
     """Calculate a score based on how many English words were found."""
     try:
         normalized = normalize_words(lyrics.split())
@@ -124,19 +124,28 @@ def word_set(dict_: str) -> Set[str]:
     return set(dict_)
 
 
-def words_in_dict(list_: Set[str], dict_: Set[str]) -> [Set[str], Set[str]]:
-    """Determine which words from list_ are in dict_."""
+def words_in_dict2(src: Set[str], ref_dict: Set[str]) -> [Set[str], Set[str]]:
+    """Determine which words from src are in ref_dict."""
     not_found = set()
     found = set()
-    for word in list_:
-        if word in dict_:
+    for word in src:
+        if word in ref_dict:
             found.add(word) 
         else:
             not_found.add(word)
     #Try to find stemmed words not found in first pass
     for word in not_found.copy():
         stemmed = stemmer.stem(word)
-        if stemmed in dict_:
+        if stemmed in ref_dict:
             found.add(word)
             not_found.remove(word)
     return found, not_found
+
+
+def words_in_dict(src: Set[str], ref_dict: Set[str]) -> [Set[str], Set[str]]:
+    """Determine which words from src are in ref_dict."""
+    found = set()
+    for word in src:
+        if word in ref_dict:
+            found.add(word) 
+    return found
