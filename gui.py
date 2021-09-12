@@ -28,8 +28,6 @@ s.configure("TButton", background="white")
 s.configure("TEntry", background="white")
 
 
-
-
 # delete?
 def count_files(dir_: str) -> None:
     """Count all files in dir_."""
@@ -41,13 +39,6 @@ def count_files(dir_: str) -> None:
     count_btn["text"] = "Count Files"
     root.update()
 
-def count_artists() -> None:
-    artists_amt["text"] = artist_count()
-
-def count_records() -> None:
-#     records = record_count()
-    records_amt["text"] = record_count()
-    # update record count
 
 def search() -> None:
     """Perform database query."""
@@ -55,42 +46,40 @@ def search() -> None:
     s = song_search_entry.get().strip()
 
     if a and s:
-        #search for artist with song
-        #if found, show lyrics for that song from that artist
-        print("artist and song")
+        result = artist_and_song(a, s)
+
+        if result:
+            #if found, show lyrics for that song from that artist
+            lyrics_textbox.delete("1.0", tk.END)
+            lyrics_textbox.insert("1.0", result)
+
     elif a:
         #only artist, if found, show song names
         songs = artist(a)
         list_results.delete(0, tk.END)
-        for song in songs:
+        amt = 0
+        for index, song in enumerate(sorted(songs, reverse=True)):
             list_results.insert(0, song)
-        search_results_frame["text"] = f"Songs by {a}"
+            amt = index
+        search_results_frame["text"] = f"{amt} songs by {a}"
 
     elif s:
-        #only song
         artists = song_query(s)
         list_results.delete(0, tk.END)
-        # if more than one, show a list of song
         if len(artists) > 1:
-            for song in artists:
+            amt = 0
+            for index, song in enumerate(sorted(artists, reverse=True)):
                 list_results.insert(0, song)
-                search_results_frame["text"] = "Multiple artists..."
+                amt = index
+            search_results_frame["text"] = "{amt} artists"
         elif len(artists) == 1:
-            search_results_frame["text"] = "Only one match"
-
+            search_results_frame["text"] = "Only one artist"
         else:
-            list_results.insert(0, song)
             search_results_frame["text"] = "No matches"
+
     else:
         #message that says you need to input something
         print("input something first...")
-
-#     add results to list_results
-#     .update()
-
-
-
-
 
 
 def quit_gui() -> None:
@@ -98,23 +87,6 @@ def quit_gui() -> None:
     cur.close()
     con.close()
     quit()
-
-
-
-
-
-################################################################################
-# Files
-################################################################################
-count_btn = ttk.Button(root, text="Count Files", command=lambda: count_files("Databases/data9"), style="TButton")
-count_btn.grid(row=9, column=0, sticky=tk.W)
-
-# file count = 38520
-# progress_bar = ttk.Progressbar(root, length=100, mode="indeterminate", orient=tk.HORIZONTAL)
-# progress_bar.grid(row=0, column=1)
-
-file_amt = ttk.Label(root)
-file_amt.grid(row=1, column=2, sticky=tk.E)
 
 
 ################################################################################
@@ -129,32 +101,44 @@ records_label.grid(row=1, column=0, sticky=tk.W)
 records_amt = ttk.Label(stats)
 records_amt.grid(row=1, column=1, sticky=tk.E)
 
-
 artists_label = ttk.Label(stats, text="Artists:")
 artists_label.grid(row=2, column=0, sticky=tk.W)
 artists_amt = ttk.Label(stats)
 artists_amt.grid(row=2, column=1, sticky=tk.E)
 
 
+################################################################################
+# Files
+################################################################################
+# count_btn = ttk.Button(root, text="Count Files", command=lambda: count_files("Databases/data9"), style="TButton")
+# count_btn.grid(row=0, column=1, sticky=tk.W, columnspan=4)
+
+# file count = 38520
+# progress_bar = ttk.Progressbar(root, length=100, mode="indeterminate", orient=tk.HORIZONTAL)
+# progress_bar.grid(row=0, column=1)
+
+file_amt = ttk.Label(root)
+file_amt.grid(row=0, column=2, sticky=tk.E)
+
 
 ################################################################################
 # DB search
 ################################################################################
 search_frame = tk.LabelFrame(root, text="Search")
-search_frame.grid(row=1, column=0, sticky=tk.W, padx=10, pady=10)
+search_frame.grid(row=1, column=0, sticky=tk.W, padx=10, pady=10, columnspan=3)
 search_frame.configure(bg=root_color, bd=2)
 
-artist_search_label = ttk.Label(search_frame, text="Artist:")
+artist_search_label = ttk.Label(search_frame, text="Artist:", width=10)
 artist_search_label.grid(row=0, column=0, sticky=tk.W)
 
-artist_search_entry = ttk.Entry(search_frame, style="TEntry")
-artist_search_entry.grid(row=0, column=1, sticky=tk.E)
+artist_search_entry = ttk.Entry(search_frame, style="TEntry", width=40)
+artist_search_entry.grid(row=0, column=1, sticky=tk.E, columnspan=2)
 
-song_search_label = ttk.Label(search_frame, text="Song:")
+song_search_label = ttk.Label(search_frame, text="Song:", width=10)
 song_search_label.grid(row=1, column=0, sticky=tk.W)
 
-song_search_entry = ttk.Entry(search_frame)
-song_search_entry.grid(row=1, column=1, sticky=tk.E)
+song_search_entry = ttk.Entry(search_frame, style="TEntry", width=40)
+song_search_entry.grid(row=1, column=1, sticky=tk.E, columnspan=2)
 
 search_btn = ttk.Button(search_frame, text="Search", command=search)
 search_btn.grid(row=2, column=0, sticky=tk.W)
@@ -170,24 +154,36 @@ search_results_frame.configure(bd=2, bg=root_color)
 search_results = ["Search for something"]
 list_items = tk.StringVar(value=search_results)
 
-list_results = tk.Listbox(search_results_frame, height=15, listvariable=list_items)
-list_results.grid(row=2, column=0, sticky=tk.W, padx=10, pady=10)
+
+#TODO
+#get listbox selection
+def callback(option: str) -> None:
+    index = list_results.curselection()
+    actual = option.widget.get(index)
+    print("actual:", actual)
+
+
+list_results = tk.Listbox(search_results_frame, height=15, listvariable=list_items, selectmode=tk.SINGLE)
+list_results.grid(row=0, column=0, sticky=tk.W, padx=10, pady=10)
+list_results.bind("<<ListboxSelect>>", callback)
 # scrollbar = tk.Scrollbar(list_results)
 # scrollbar.config(command=list_results.yview)
 # list_results.config(yscrollcommand=scrollbar.set)
 
-
-
+lyrics_textbox = tk.Text(search_results_frame, height=20, width=40)
+lyrics_textbox.grid(row=0, column=1, sticky=tk.E, padx=10, pady=10)
 
 
 
 # Quit button
 quit_btn = ttk.Button(root, text="Quit", command=quit_gui)
-quit_btn.grid(row=10, column=0, sticky=tk.SW)
+quit_btn.grid(row=4, column=1, sticky=tk.E, columnspan=3)
 
 
 if __name__ == "__main__":
-    count_records()
-    count_artists()
+    #preload some simple stats
+    records_amt["text"] = record_count()
+    artists_amt["text"] = artist_count()
+
     # main
     root.mainloop()
