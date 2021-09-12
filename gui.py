@@ -15,7 +15,7 @@ con = psycopg2.connect("dbname=lyricsdemo user=postgres")
 cur = con.cursor()
 
 root = tk.Tk()
-root.geometry("600x600")
+root.geometry("800x600")
 # root.configure(bg="blue")
 # tk_rgb = "#%02x%02x%02x" % (128, 192, 200)
 root_color = "#%02x%02x%02x" % (235, 235, 235)
@@ -80,6 +80,27 @@ def search() -> None:
     else:
         #message that says you need to input something
         print("input something first...")
+
+
+def handle_results_click(option: str) -> None:
+    index = list_results.curselection()
+    selection = option.widget.get(index)
+
+    artist = artist_search_entry.get().strip()
+    song = song_search_entry.get().strip()
+    result = None
+
+    if artist and not song:
+#         print("artist, no song:", artist_and_song(artist, selection))
+        result = artist_and_song(artist, selection)
+
+    elif song and not artist:
+#         print("song, no artist:", artist_and_song(selection, song))
+        result = artist_and_song(selection, song)
+    
+    #update the lyrics box
+    lyrics_textbox.delete("1.0", tk.END)
+    lyrics_textbox.insert("1.0", result)
 
 
 def quit_gui() -> None:
@@ -155,22 +176,14 @@ search_results = ["Search for something"]
 list_items = tk.StringVar(value=search_results)
 
 
-#TODO
-#get listbox selection
-def callback(option: str) -> None:
-    index = list_results.curselection()
-    actual = option.widget.get(index)
-    print("actual:", actual)
-
-
 list_results = tk.Listbox(search_results_frame, height=15, listvariable=list_items, selectmode=tk.SINGLE)
 list_results.grid(row=0, column=0, sticky=tk.W, padx=10, pady=10)
-list_results.bind("<<ListboxSelect>>", callback)
+list_results.bind("<<ListboxSelect>>", handle_results_click)
 # scrollbar = tk.Scrollbar(list_results)
 # scrollbar.config(command=list_results.yview)
 # list_results.config(yscrollcommand=scrollbar.set)
 
-lyrics_textbox = tk.Text(search_results_frame, height=20, width=40)
+lyrics_textbox = tk.Text(search_results_frame, height=20, width=60)
 lyrics_textbox.grid(row=0, column=1, sticky=tk.E, padx=10, pady=10)
 
 
