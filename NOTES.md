@@ -187,3 +187,4 @@ valid_words = words_in_dict(lyrics_set, dictionary)
 
 
 ### Make a trie
+_see trie.py_
