@@ -1,5 +1,6 @@
 # Description
 A CLI tool for setting up the Lyrics database.
+![Screenshot](screenshot.png)
 
 
 ### Demo
