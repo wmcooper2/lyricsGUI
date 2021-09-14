@@ -45,6 +45,19 @@ def artist_and_song(artist: str, song: str) -> str:
     return results[0][0]
 
 
+def word_phrase_search(pattern: str) -> list:
+    print("Searching for:", pattern)
+    cur, con = connect()
+#     cur.execute('SELECT artist,song FROM songs WHERE lyrics SIMILAR TO %s', (f'^{pattern}',))
+#     cur.execute('SELECT artist FROM songs WHERE artist SIMILAR TO %s', (f'{pattern}',))
+    cur.execute('SELECT artist FROM songs WHERE artist LIKE %s', (f'{pattern}',))
+    result = cur.fetchall()
+    _close(cur, con)
+    print("results: ", len(result))
+    print("results: ", result[0:10])
+    return result
+
+
 def record_count() -> int:
     cur, con = connect()
     cur.execute('SELECT COUNT(*) FROM songs')

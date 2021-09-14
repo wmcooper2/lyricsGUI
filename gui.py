@@ -2,6 +2,7 @@
 from pathlib import Path
 import tkinter as tk
 from tkinter import ttk
+from tkinter import scrolledtext
 
 #3rd party
 import psycopg2
@@ -15,7 +16,7 @@ con = psycopg2.connect("dbname=lyricsdemo user=postgres")
 cur = con.cursor()
 
 root = tk.Tk()
-root.geometry("800x600")
+root.geometry("1000x600")
 # root.configure(bg="blue")
 # tk_rgb = "#%02x%02x%02x" % (128, 192, 200)
 root_color = "#%02x%02x%02x" % (235, 235, 235)
@@ -44,8 +45,15 @@ def search() -> None:
     """Perform database query."""
     a = artist_search_entry.get().strip()
     s = song_search_entry.get().strip()
+    w = word_phrase_entry.get().strip()
 
-    if a and s:
+#     if a and s and w:
+    if w and not s and not a:
+        #perform regex search on lyrics column
+#         word_phrase_search(w)
+        print("still working on this...")
+
+    elif a and s:
         result = artist_and_song(a, s)
 
         if result:
@@ -143,26 +151,32 @@ file_amt.grid(row=0, column=2, sticky=tk.E)
 
 
 ################################################################################
-# DB search
+# Search Frame
 ################################################################################
 search_frame = tk.LabelFrame(root, text="Search")
 search_frame.grid(row=1, column=0, sticky=tk.W, padx=10, pady=10, columnspan=3)
 search_frame.configure(bg=root_color, bd=2)
 
-artist_search_label = ttk.Label(search_frame, text="Artist:", width=10)
+artist_search_label = ttk.Label(search_frame, text="Artist:")
 artist_search_label.grid(row=0, column=0, sticky=tk.W)
 
 artist_search_entry = ttk.Entry(search_frame, style="TEntry", width=40)
 artist_search_entry.grid(row=0, column=1, sticky=tk.E, columnspan=2)
 
-song_search_label = ttk.Label(search_frame, text="Song:", width=10)
+song_search_label = ttk.Label(search_frame, text="Song:")
 song_search_label.grid(row=1, column=0, sticky=tk.W)
 
 song_search_entry = ttk.Entry(search_frame, style="TEntry", width=40)
 song_search_entry.grid(row=1, column=1, sticky=tk.E, columnspan=2)
 
-search_btn = ttk.Button(search_frame, text="Search", command=search)
-search_btn.grid(row=2, column=0, sticky=tk.W)
+word_phrase_label = ttk.Label(search_frame, text="Exact word or phrase:")
+word_phrase_label.grid(row=2, column=0, sticky=tk.W)
+
+word_phrase_entry = ttk.Entry(search_frame, width=40)
+word_phrase_entry.grid(row=2, column=1, sticky=tk.E)
+
+search_btn = ttk.Button(search_frame, text="Search Lyrics", command=search)
+search_btn.grid(row=3, column=0, sticky=tk.W)
 
 
 ################################################################################
@@ -176,14 +190,15 @@ search_results = ["Search for something"]
 list_items = tk.StringVar(value=search_results)
 
 
-list_results = tk.Listbox(search_results_frame, height=15, listvariable=list_items, selectmode=tk.SINGLE)
+list_results = tk.Listbox(search_results_frame, width=40, height=15, listvariable=list_items, selectmode=tk.SINGLE)
+# list_results = tk.scrolledtext.ScrolledText(search_results_frame, height=15)
 list_results.grid(row=0, column=0, sticky=tk.W, padx=10, pady=10)
 list_results.bind("<<ListboxSelect>>", handle_results_click)
 # scrollbar = tk.Scrollbar(list_results)
 # scrollbar.config(command=list_results.yview)
 # list_results.config(yscrollcommand=scrollbar.set)
 
-lyrics_textbox = tk.Text(search_results_frame, height=20, width=60)
+lyrics_textbox = tk.scrolledtext.ScrolledText(search_results_frame, height=20, width=60, wrap=tk.WORD)
 lyrics_textbox.grid(row=0, column=1, sticky=tk.E, padx=10, pady=10)
 
 
