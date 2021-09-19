@@ -5,7 +5,8 @@ from tkinter import ttk
 from tkinter import scrolledtext
 
 #3rd party
-import psycopg2
+# import psycopg2
+import sqlite3
 
 # custom
 from db_util import *
@@ -92,8 +93,8 @@ def handle_results_click(option: str) -> None:
 
 def quit_gui() -> None:
     """Quit the program."""
-    cur.close()
-    con.close()
+#     cur.close()
+#     con.close()
     quit()
 
 
@@ -105,8 +106,9 @@ if __name__ == "__main__":
     # main
         # Database
     # DB; "dbname=lyricsdemo user=postgres"
-    con = psycopg2.connect("dbname=lyricsdemo user=postgres")
-    cur = con.cursor()
+#     con = psycopg2.connect("dbname=lyricsdemo user=postgres")
+#     con = sqlite3.connect("Databases/lyrics.db")
+#     cur = con.cursor()
 
     root = tk.Tk()
     root.geometry("1000x600")
