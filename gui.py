@@ -10,26 +10,6 @@ import psycopg2
 # custom
 from db_util import *
 
-# Database
-# DB; "dbname=lyricsdemo user=postgres"
-con = psycopg2.connect("dbname=lyricsdemo user=postgres")
-cur = con.cursor()
-
-root = tk.Tk()
-root.geometry("1000x600")
-# root.configure(bg="blue")
-# tk_rgb = "#%02x%02x%02x" % (128, 192, 200)
-root_color = "#%02x%02x%02x" % (235, 235, 235)
-root.configure(bg=root_color)
-
-# paddings = {"padx": 10, "pady": 10}
-s = ttk.Style()
-s.configure(".", background="green")
-s.configure("TButton", background="white")
-s.configure("TEntry", background="white")
-
-
-# delete?
 def count_files(dir_: str) -> None:
     """Count all files in dir_."""
     count_btn["text"] = "Counting..."
@@ -79,11 +59,12 @@ def search() -> None:
             for index, song in enumerate(sorted(artists, reverse=True)):
                 list_results.insert(0, song)
                 amt = index
-            search_results_frame["text"] = "{amt} artists"
         elif len(artists) == 1:
-            search_results_frame["text"] = "Only one artist"
+            pass
+            #TODO: tell user there is only one artist
         else:
-            search_results_frame["text"] = "No matches"
+            pass
+            #TODO: tell user there are no results
 
     else:
         #message that says you need to input something
@@ -99,11 +80,9 @@ def handle_results_click(option: str) -> None:
     result = None
 
     if artist and not song:
-#         print("artist, no song:", artist_and_song(artist, selection))
         result = artist_and_song(artist, selection)
 
     elif song and not artist:
-#         print("song, no artist:", artist_and_song(selection, song))
         result = artist_and_song(selection, song)
     
     #update the lyrics box
@@ -118,100 +97,126 @@ def quit_gui() -> None:
     quit()
 
 
-################################################################################
-# DB records
-################################################################################
-stats = tk.LabelFrame(root, text="DB Stats")
-stats.grid(row=0, column=0, sticky=tk.W, padx=10, pady=10)
-stats.configure(bg=root_color, bd=2)
-
-records_label = ttk.Label(stats, text="Records:")
-records_label.grid(row=1, column=0, sticky=tk.W)
-records_amt = ttk.Label(stats)
-records_amt.grid(row=1, column=1, sticky=tk.E)
-
-artists_label = ttk.Label(stats, text="Artists:")
-artists_label.grid(row=2, column=0, sticky=tk.W)
-artists_amt = ttk.Label(stats)
-artists_amt.grid(row=2, column=1, sticky=tk.E)
-
-
-################################################################################
-# Files
-################################################################################
-# count_btn = ttk.Button(root, text="Count Files", command=lambda: count_files("Databases/data9"), style="TButton")
-# count_btn.grid(row=0, column=1, sticky=tk.W, columnspan=4)
-
-# file count = 38520
-# progress_bar = ttk.Progressbar(root, length=100, mode="indeterminate", orient=tk.HORIZONTAL)
-# progress_bar.grid(row=0, column=1)
-
-file_amt = ttk.Label(root)
-file_amt.grid(row=0, column=2, sticky=tk.E)
-
-
-################################################################################
-# Search Frame
-################################################################################
-search_frame = tk.LabelFrame(root, text="Search")
-search_frame.grid(row=1, column=0, sticky=tk.W, padx=10, pady=10, columnspan=3)
-search_frame.configure(bg=root_color, bd=2)
-
-artist_search_label = ttk.Label(search_frame, text="Artist:")
-artist_search_label.grid(row=0, column=0, sticky=tk.W)
-
-artist_search_entry = ttk.Entry(search_frame, style="TEntry", width=40)
-artist_search_entry.grid(row=0, column=1, sticky=tk.E, columnspan=2)
-
-song_search_label = ttk.Label(search_frame, text="Song:")
-song_search_label.grid(row=1, column=0, sticky=tk.W)
-
-song_search_entry = ttk.Entry(search_frame, style="TEntry", width=40)
-song_search_entry.grid(row=1, column=1, sticky=tk.E, columnspan=2)
-
-word_phrase_label = ttk.Label(search_frame, text="Exact word or phrase:")
-word_phrase_label.grid(row=2, column=0, sticky=tk.W)
-
-word_phrase_entry = ttk.Entry(search_frame, width=40)
-word_phrase_entry.grid(row=2, column=1, sticky=tk.E)
-
-search_btn = ttk.Button(search_frame, text="Search Lyrics", command=search)
-search_btn.grid(row=3, column=0, sticky=tk.W)
-
-
-################################################################################
-# Search Results
-################################################################################
-search_results_frame = tk.LabelFrame(search_frame, text="Results")
-search_results_frame.grid(row=9, column=0, sticky=tk.W, columnspan=2, padx=10, pady=10)
-search_results_frame.configure(bd=2, bg=root_color)
-
-search_results = ["Search for something"]
-list_items = tk.StringVar(value=search_results)
-
-
-list_results = tk.Listbox(search_results_frame, width=40, height=15, listvariable=list_items, selectmode=tk.SINGLE)
-# list_results = tk.scrolledtext.ScrolledText(search_results_frame, height=15)
-list_results.grid(row=0, column=0, sticky=tk.W, padx=10, pady=10)
-list_results.bind("<<ListboxSelect>>", handle_results_click)
-# scrollbar = tk.Scrollbar(list_results)
-# scrollbar.config(command=list_results.yview)
-# list_results.config(yscrollcommand=scrollbar.set)
-
-lyrics_textbox = tk.scrolledtext.ScrolledText(search_results_frame, height=20, width=60, wrap=tk.WORD)
-lyrics_textbox.grid(row=0, column=1, sticky=tk.E, padx=10, pady=10)
-
-
-
-# Quit button
-quit_btn = ttk.Button(root, text="Quit", command=quit_gui)
-quit_btn.grid(row=4, column=1, sticky=tk.E, columnspan=3)
-
-
 if __name__ == "__main__":
+
+    frame_padding = {"padx": 10, "pady": 10}
+
+    #TODO: switch to sqlite3
+    # main
+        # Database
+    # DB; "dbname=lyricsdemo user=postgres"
+    con = psycopg2.connect("dbname=lyricsdemo user=postgres")
+    cur = con.cursor()
+
+    root = tk.Tk()
+    root.geometry("1000x600")
+    root_color = "#%02x%02x%02x" % (235, 235, 235)
+    root.configure(bg=root_color)
+
+    # s = ttk.Style()
+    # s.configure(".", background="green")
+    # s.configure("TButton", background="white")
+    # s.configure("TEntry", background="white")
+
+    ################################################################################
+    # DB records
+    ################################################################################
+    stats = ttk.Frame(root)
+#     stats.configure(bg=root_color, bd=2)
+    stats.pack(side=tk.TOP, fill=tk.X, **frame_padding)
+
+    records_label = ttk.Label(stats, text="Records:")
+    records_label.pack(side=tk.LEFT)
+    records_amt = ttk.Label(stats)
+    records_amt.pack(side=tk.LEFT)
+
+    artists_label = ttk.Label(stats, text="Artists:")
+    artists_label.pack(side=tk.LEFT)
+    artists_amt = ttk.Label(stats)
+    artists_amt.pack(side=tk.LEFT)
+
+
+    ################################################################################
+    # Files
+    ################################################################################
+    # count_btn = ttk.Button(root, text="Count Files", command=lambda: count_files("Databases/data9"), style="TButton")
+    # count_btn.pack()
+
+    # file count = 38520
+    # progress_bar = ttk.Progressbar(root, length=100, mode="indeterminate", orient=tk.HORIZONTAL)
+    # progress_bar.pack()
+
+#     file_amt = ttk.Label(root)
+#     file_amt.pack()
+
+
+    ################################################################################
+    # Search Frame
+    ################################################################################
+    search_frame = ttk.LabelFrame(root, text="Search")
+    search_frame.pack(side=tk.TOP, fill=tk.X, **frame_padding)
+    # search_frame.configure(bg=root_color, bd=2)
+
+    # row container
+    artist_search = ttk.Frame(search_frame)
+    artist_search.pack(side=tk.TOP, fill=tk.X)
+    artist_search_label = ttk.Label(artist_search, text="Artist:")
+    artist_search_label.pack(side=tk.LEFT)
+    artist_search_entry = ttk.Entry(artist_search, style="TEntry", width=40)
+    artist_search_entry.pack(side=tk.LEFT)
+
+    # row container
+    song_search = ttk.Frame(search_frame)
+    song_search.pack(side=tk.TOP, fill=tk.X)
+    song_search_label = ttk.Label(song_search, text="Song:")
+    song_search_label.pack(side=tk.LEFT)
+    song_search_entry = ttk.Entry(song_search, style="TEntry", width=40)
+    song_search_entry.pack(side=tk.LEFT)
+
+    word_search = ttk.Frame(search_frame)
+    word_search.pack(side=tk.TOP, fill=tk.X)
+    word_phrase_label = ttk.Label(word_search, text="Word or phrase:")
+    word_phrase_label.pack(side=tk.LEFT)
+    word_phrase_entry = ttk.Entry(word_search, width=40)
+    word_phrase_entry.pack(side=tk.LEFT)
+
+    search_btn = ttk.Button(search_frame, text="Search Lyrics", command=search)
+    search_btn.pack(side=tk.RIGHT)
+
+
+    ################################################################################
+    # Search Results
+    ################################################################################
+    search_results_frame = tk.Frame(root)
+    search_results_frame.pack(fill=tk.BOTH, **frame_padding)
+    search_results_frame.configure(bd=2, bg=root_color)
+    search_results = ["Search for something"]
+    list_items = tk.StringVar(value=search_results)
+
+    list_results = tk.Listbox(search_results_frame, width=40, height=15, listvariable=list_items, selectmode=tk.SINGLE)
+#     list_results = tk.scrolledtext.ScrolledText(search_results_frame, height=15)
+    list_results.bind("<<ListboxSelect>>", handle_results_click)
+    list_results.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+
+    scrollbar = tk.Scrollbar(list_results)
+    scrollbar.config(command=list_results.yview)
+    list_results.config(yscrollcommand=scrollbar.set)
+
+    lyrics_textbox = tk.scrolledtext.ScrolledText(search_results_frame, height=20, width=60, wrap=tk.WORD)
+    lyrics_textbox.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+
+
+
+    # Quit button
+    quit_btn = ttk.Button(root, text="Quit", command=quit_gui)
+    quit_btn.pack(side=tk.RIGHT)
+
+
+
     #preload some simple stats
     records_amt["text"] = record_count()
     artists_amt["text"] = artist_count()
 
-    # main
+
+
     root.mainloop()
