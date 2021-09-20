@@ -1,15 +1,22 @@
 #std lib
 from pathlib import Path
+import sqlite3
+import time
+import threading
 import tkinter as tk
+from tkinter import messagebox
 from tkinter import ttk
 from tkinter import scrolledtext
 
-#3rd party
-# import psycopg2
-import sqlite3
 
 # custom
 from db_util import *
+
+#Globals
+regex_results = []
+index = 0
+cancel_flag = False
+
 
 def count_files(dir_: str) -> None:
     """Count all files in dir_."""
@@ -22,39 +29,125 @@ def count_files(dir_: str) -> None:
     root.update()
 
 
+def handle_results_click(option: str) -> None:
+    """Load the selected song's lyrics into the lyrics box."""
+    index = list_results.curselection()
+    selection = None
+    try:
+        selection = option.widget.get(index)
+    except tk.TclError:
+        pass
+
+    artist = artist_search_entry.get().strip()
+    song = song_search_entry.get().strip()
+    result = None
+    
+    if selection:
+        if artist and not song:
+            result = artist_and_song(artist, selection)
+
+        elif song and not artist:
+            result = artist_and_song(selection, song)
+        
+        if result:
+        #update the lyrics box
+            lyrics_textbox.delete("1.0", tk.END)
+            lyrics_textbox.insert("1.0", result)
+
+
+def input_something_message() -> None:
+    messagebox.showinfo(title="Advice", message="Input something to begin a search.")
+
+
+def long_search_message() -> bool:
+    message = messagebox.askyesno(title="Word or Phrase Search", message="This may take up to 30 minutes. You may continue to use the program to search while waiting. A notification will appear when the search is finished. Are you sure you want to continue?")
+    return message
+
+
+def regex_search(regex, index: int) -> None: 
+    global regex_results
+
+    cur, con = connect()
+    cur.execute('SELECT * FROM songs WHERE id>=? AND id<=?', (index, index+100))
+    records = cur.fetchall()
+
+    for record in records:
+        res = regex.search(record[3])
+        if res:
+            regex_results.append((record[0], record[1], record[2]))
+    close_connection(cur, con)
+
+
 def search() -> None:
     """Perform database query."""
+
+    # clear the listbox's contents
+    list_results.delete(0, tk.END)
+
     a = artist_search_entry.get().strip()
     s = song_search_entry.get().strip()
     w = word_phrase_entry.get().strip()
 
-#     if a and s and w:
-    if w and not s and not a:
-        #perform regex search on lyrics column
-#         word_phrase_search(w)
-        print("still working on this...")
+    #possible patterns
+    #wsa    
+    #ws     
+    #w a    
+    # sa    
+    #w      
+    # s     
+    #  a    
+    #none   
 
-    elif a and s:
+
+    #wsa
+    if w and s and a:
+        # ask if the user wants to cancel the current word search
+        pass
+        # load the one song
+        artists = song_query(s)
+        # highlight the locations within the lyrics box where the regex matches
+
+    #ws
+    elif w and s and not a:
+        # ask if the user wants to cancel the current word search
+        pass
+        # load all songs that have that song name
+        artists = song_query(s)
+        # then when they are clicked on in the list box
+            # highlight the locations in the lyrics box where the regex matches
+
+    #w a
+    elif w and not s and a:
+        # ask if the user wants to cancel the current word search
+        pass
+        # load all the songs by the artist, then do the same as with "ws " option
+
+    # sa
+    elif not w and s and a:
+        #show lyrics for that song from that artist
         result = artist_and_song(a, s)
-
         if result:
-            #if found, show lyrics for that song from that artist
             lyrics_textbox.delete("1.0", tk.END)
             lyrics_textbox.insert("1.0", result)
+        else:
+            lyrics_textbox.delete("1.0", tk.END)
+            list_results.delete(0, tk.END)
+            list_results.insert(0, "No matching results.")
 
-    elif a:
-        #only artist, if found, show song names
-        songs = artist(a)
-        list_results.delete(0, tk.END)
-        amt = 0
-        for index, song in enumerate(sorted(songs, reverse=True)):
-            list_results.insert(0, song)
-            amt = index
-        search_results_frame["text"] = f"{amt} songs by {a}"
+    #w
+    elif w and not s and not a:
+        # if there is a current word search, ask if the user wants to cancel it.
+        # search for any song from any artist that contains the pattern
+        message = long_search_message()
+        if message:
+            word_search(w, records)
+            # set cancel on progress bar to enabled
 
-    elif s:
+    # s
+    elif not w and s and not a:
+        # load all songs with that title
         artists = song_query(s)
-        list_results.delete(0, tk.END)
+#         list_results.delete(0, tk.END)
         if len(artists) > 1:
             amt = 0
             for index, song in enumerate(sorted(artists, reverse=True)):
@@ -67,64 +160,113 @@ def search() -> None:
             pass
             #TODO: tell user there are no results
 
+    #  a
+    elif not w and not s and a:
+        # load all songs written by that artist
+        lyrics_textbox.delete("1.0", tk.END)
+        songs = artist(a)
+        list_results.delete(0, tk.END)
+        amt = 0
+        for index, song in enumerate(sorted(songs, reverse=True)):
+            list_results.insert(0, song)
+            amt = index
+
+    #none
     else:
-        #message that says you need to input something
+        # show a message that says you need to input something
         print("input something first...")
+        input_something_message()
 
 
-def handle_results_click(option: str) -> None:
-    index = list_results.curselection()
-    selection = option.widget.get(index)
+def set_cancel_flag() -> None:
+    """Set the quit flag to True."""
+    global cancel_flag
+    cancel_flag = False
 
-    artist = artist_search_entry.get().strip()
-    song = song_search_entry.get().strip()
-    result = None
 
-    if artist and not song:
-        result = artist_and_song(artist, selection)
+def thread_manager(limit: int, regex: re.Pattern) -> None:
+    global progress
+    global index
+    global cancel_flag
+    step = 100
 
-    elif song and not artist:
-        result = artist_and_song(selection, song)
+    # enable cancel button
+    cancel_btn.config(state=tk.NORMAL)
+
+    # ensure cancel_flag is false
+    cancel_flag = False
+
+    while index < limit:
+        thread = threading.Thread(target=regex_search, args=(regex, index))
+        thread.start()
+
+        # wait for the thread to finish
+        while thread.is_alive() and not cancel_flag:
+            continue
+
+        thread.join()  # end the thread, (timeout=5) ? 
+        index += step
+
+        if progress.get() >= records:
+            break
+
+        progress_bar.step(step)
+
+    #one last update, then exit
+    progress_bar.step(step)
+
+    # disable the cancel button
+    cancel_btn.config(state=tk.DISABLE)
+
+    # reset cancel_flag
+    cancel_flag = False
     
-    #update the lyrics box
-    lyrics_textbox.delete("1.0", tk.END)
-    lyrics_textbox.insert("1.0", result)
+    # reset the index counter
+    index = 0
+#     print("regex results: ", regex_results)
+#     show message that the search is finished and can be loaded into the current window, and saved into a file
+
+
+def word_search(pattern: str, limit: int):
+    regex = re.compile(pattern)
+
+    #create main thread to manage the other threads
+    manager_thread = threading.Thread(target=thread_manager, args=(limit, regex))
+    manager_thread.start()
 
 
 def quit_gui() -> None:
     """Quit the program."""
+    global cancel_flag
+    #shut down any running threads
+    cancel_flag = True
+    # threads.join() ?
+
 #     cur.close()
 #     con.close()
     quit()
 
 
 if __name__ == "__main__":
+    # load some simple stats
+    records = record_count()
+    artists = artist_count()
 
     frame_padding = {"padx": 10, "pady": 10}
-
-    #TODO: switch to sqlite3
-    # main
-        # Database
-    # DB; "dbname=lyricsdemo user=postgres"
-#     con = psycopg2.connect("dbname=lyricsdemo user=postgres")
-#     con = sqlite3.connect("Databases/lyrics.db")
-#     cur = con.cursor()
+    root_padding = {"padx": 5, "pady": 5}
 
     root = tk.Tk()
-    root.geometry("1000x600")
+    width = 1000
+    height = 600
+    window_size = f"{width}x{height}"
+    root.geometry(window_size)
     root_color = "#%02x%02x%02x" % (235, 235, 235)
     root.configure(bg=root_color)
-
-    # s = ttk.Style()
-    # s.configure(".", background="green")
-    # s.configure("TButton", background="white")
-    # s.configure("TEntry", background="white")
 
     ################################################################################
     # DB records
     ################################################################################
-    stats = ttk.Frame(root)
-#     stats.configure(bg=root_color, bd=2)
+    stats = ttk.LabelFrame(root, text="Stats")
     stats.pack(side=tk.TOP, fill=tk.X, **frame_padding)
 
     records_label = ttk.Label(stats, text="Records:")
@@ -139,30 +281,15 @@ if __name__ == "__main__":
 
 
     ################################################################################
-    # Files
-    ################################################################################
-    # count_btn = ttk.Button(root, text="Count Files", command=lambda: count_files("Databases/data9"), style="TButton")
-    # count_btn.pack()
-
-    # file count = 38520
-    # progress_bar = ttk.Progressbar(root, length=100, mode="indeterminate", orient=tk.HORIZONTAL)
-    # progress_bar.pack()
-
-#     file_amt = ttk.Label(root)
-#     file_amt.pack()
-
-
-    ################################################################################
     # Search Frame
     ################################################################################
     search_frame = ttk.LabelFrame(root, text="Search")
     search_frame.pack(side=tk.TOP, fill=tk.X, **frame_padding)
-    # search_frame.configure(bg=root_color, bd=2)
 
     # row container
     artist_search = ttk.Frame(search_frame)
     artist_search.pack(side=tk.TOP, fill=tk.X)
-    artist_search_label = ttk.Label(artist_search, text="Artist:")
+    artist_search_label = ttk.Label(artist_search, text="Artist:", width=15)
     artist_search_label.pack(side=tk.LEFT)
     artist_search_entry = ttk.Entry(artist_search, style="TEntry", width=40)
     artist_search_entry.pack(side=tk.LEFT)
@@ -170,16 +297,16 @@ if __name__ == "__main__":
     # row container
     song_search = ttk.Frame(search_frame)
     song_search.pack(side=tk.TOP, fill=tk.X)
-    song_search_label = ttk.Label(song_search, text="Song:")
+    song_search_label = ttk.Label(song_search, text="Song:", width=15)
     song_search_label.pack(side=tk.LEFT)
     song_search_entry = ttk.Entry(song_search, style="TEntry", width=40)
     song_search_entry.pack(side=tk.LEFT)
 
-    word_search = ttk.Frame(search_frame)
-    word_search.pack(side=tk.TOP, fill=tk.X)
-    word_phrase_label = ttk.Label(word_search, text="Word or phrase:")
+    word_search_frame = ttk.Frame(search_frame)
+    word_search_frame.pack(side=tk.TOP, fill=tk.X)
+    word_phrase_label = ttk.Label(word_search_frame, text="Word or phrase:", width=15)
     word_phrase_label.pack(side=tk.LEFT)
-    word_phrase_entry = ttk.Entry(word_search, width=40)
+    word_phrase_entry = ttk.Entry(word_search_frame, width=40)
     word_phrase_entry.pack(side=tk.LEFT)
 
     search_btn = ttk.Button(search_frame, text="Search Lyrics", command=search)
@@ -189,9 +316,9 @@ if __name__ == "__main__":
     ################################################################################
     # Search Results
     ################################################################################
-    search_results_frame = tk.Frame(root)
+    search_results_frame = ttk.LabelFrame(root, text="Results")
     search_results_frame.pack(fill=tk.BOTH, **frame_padding)
-    search_results_frame.configure(bd=2, bg=root_color)
+#     search_results_frame.configure(bd=2, bg=root_color)
     search_results = ["Search for something"]
     list_items = tk.StringVar(value=search_results)
 
@@ -208,17 +335,27 @@ if __name__ == "__main__":
     lyrics_textbox.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
 
 
+    ################################################################################
+    # Footer
+    ################################################################################
+    footer = ttk.Frame(root)
+    footer.pack(side=tk.TOP)
+    progress = tk.IntVar()
+    progress_bar = ttk.Progressbar(footer, length=width-100, maximum=records, mode="determinate", variable=progress)
+    progress_bar.pack(side=tk.LEFT)
+    cancel_btn = ttk.Button(footer, text="Cancel", state=tk.DISABLED, command=set_cancel_flag)
+    cancel_btn.pack(side=tk.RIGHT)
+
 
     # Quit button
     quit_btn = ttk.Button(root, text="Quit", command=quit_gui)
-    quit_btn.pack(side=tk.RIGHT)
+    quit_btn.pack(side=tk.RIGHT, **root_padding)
 
+    # display simple stats
+    records_amt["text"] = records
+    artists_amt["text"] = artists
 
-
-    #preload some simple stats
-    records_amt["text"] = record_count()
-    artists_amt["text"] = artist_count()
-
-
+    # conveniences
+    artist_search_entry.focus()
 
     root.mainloop()

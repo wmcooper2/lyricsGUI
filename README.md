@@ -33,6 +33,11 @@ The final program will contain 5 major stages/areas:
     * and the file has the ".txt" suffix (for when it is extracted)
     * example: `Artist_Song Name.txt`
 
+### Setup
+1. Make sure `Databases/lyrics.csv` exists.
+2. Run `init_database.py` once.
+3. Inspect the contents of the DB with "DB Browser for SQLite" application.
+
 ### Operation
 1. "Moved to argparse CLI tool description."
 2. "Moved to argparse CLI tool description."
