@@ -2,6 +2,12 @@
 A CLI tool for setting up the Lyrics database.
 ![Screenshot](screenshot.png)
 
+### TODO
+1. redo demo database with new sqlite3 setup
+2. write tests
+3. Add notebook tabs
+4. Add Youtube video lookup functionality.
+
 
 ### Demo
 To run a demo, which only uses the functions from search.py, run:  
@@ -149,3 +155,14 @@ General Process;
 
 # deleting __init__.py in the same directory solved the problem
 ```
+
+### Testing
+Possible Search Patterns:  
+
+|Search Input|||||||||  
+|---|---|---|---|---|---|---|---|---|---|  
+|Artist  |X   |X   |X   |O   |X   |O   |O   |O
+|Song    |X   |X   |O   |X   |O   |X   |O   |O
+|Word    |X   |O   |X   |X   |O   |O   |X   |O
+
+

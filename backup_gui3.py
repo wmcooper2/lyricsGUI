@@ -273,91 +273,6 @@ def quit_gui() -> None:
     # threads.join() ?
     quit()
 
-class Stats(tk.Frame):
-    def __init__(self, master):
-        super().__init__()
-        self.root = ttk.LabelFrame(master, text="Stats")
-        self.root.pack(side=tk.TOP, fill=tk.X, **frame_padding)
-
-        records_label = ttk.Label(self.root, text="Songs:")
-        records_label.pack(side=tk.LEFT)
-        records_amt = ttk.Label(self.root)
-        records_amt.pack(side=tk.LEFT)
-
-        artists_label = ttk.Label(self.root, text="Artists:")
-        artists_label.pack(side=tk.LEFT)
-        artists_amt = ttk.Label(self.root)
-        artists_amt.pack(side=tk.LEFT)
-
-class Search(tk.Frame):
-    def __init__(self, master):
-        super().__init__()
-        self.root = ttk.LabelFrame(master, text="Search")
-        self.root.pack(side=tk.TOP, fill=tk.X, **frame_padding)
-
-        # entryframe
-        self.entry_frame = ttk.Frame(self.root)
-        self.entry_frame.pack(side=tk.LEFT)
-
-        # row container
-        self.artist_search = ttk.Frame(self.entry_frame)
-        self.artist_search.pack(side=tk.TOP, fill=tk.X)
-        self.artist_search_label = ttk.Label(self.artist_search, text="Artist:", width=15)
-        self.artist_search_label.pack(side=tk.LEFT)
-        self.artist_search_entry = ttk.Entry(self.artist_search, style="TEntry", width=40)
-        self.artist_search_entry.pack(side=tk.LEFT)
-
-        # song row
-        self.song_search = ttk.Frame(self.entry_frame)
-        self.song_search.pack(side=tk.TOP, fill=tk.X)
-        self.song_search_label = ttk.Label(self.song_search, text="Song:", width=15)
-        self.song_search_label.pack(side=tk.LEFT)
-        self.song_search_entry = ttk.Entry(self.song_search, style="TEntry", width=40)
-        self.song_search_entry.pack(side=tk.LEFT)
-
-        # word row
-        self.word_search_frame = ttk.Frame(self.entry_frame)
-        self.word_search_frame.pack(side=tk.TOP, fill=tk.X)
-        self.word_phrase_label = ttk.Label(self.word_search_frame, text="Word or phrase:", width=15)
-        self.word_phrase_label.pack(side=tk.LEFT)
-        self.word_phrase_entry = ttk.Entry(self.word_search_frame, width=40)
-        self.word_phrase_entry.pack(side=tk.LEFT)
-
-#         self.search_btn = ttk.Button(self.search_frame, text="Search Lyrics", command=search)
-        self.search_btn = ttk.Button(self, text="Search Lyrics")
-        self.search_btn.pack(side=tk.RIGHT)
-
-        # options frame
-        self.options_frame = ttk.Frame(self.root)
-        self.options_frame.pack(side=tk.LEFT, expand=True)
-
-        # radio button row
-        self.top_options_frame = ttk.Frame(self.options_frame)
-        self.top_options_frame.pack(side=tk.TOP)
-
-        # exact/fuzzy options
-        self.radiobutton_frame = ttk.Frame(self.top_options_frame)
-        self.radiobutton_frame.pack(side=tk.TOP)
-        self.artist_option_var = tk.StringVar()
-        self.artist_option_exact = ttk.Radiobutton(self.radiobutton_frame, text="Exact", variable=self.artist_option_var, value=1)
-        self.artist_option_exact.pack(side=tk.LEFT)
-        self.artist_option_fuzzy = ttk.Radiobutton(self.radiobutton_frame, text="Fuzzy", variable=self.artist_option_var, value=2)
-        self.artist_option_fuzzy.pack(side=tk.LEFT)
-        
-        # max words between
-        self.slider_frame = ttk.Frame(self.options_frame)
-        self.slider_frame.pack(side=tk.TOP)
-        self.slider_label = ttk.Label(self.slider_frame, text="Max words between:")
-        self.slider_label.pack(side=tk.LEFT)
-        self.slider = ttk.Scale(self.slider_frame, from_=0, to=5)
-        self.slider.pack(side=tk.LEFT)
-
-
-class App(tk.Tk):
-    def __init__(self):
-        super().__init__()
-        self.stats = Stats(self)
-        self.search = Search(self)
 
 if __name__ == "__main__":
     # load some simple stats
@@ -367,114 +282,106 @@ if __name__ == "__main__":
     frame_padding = {"padx": 10, "pady": 10}
     root_padding = {"padx": 5, "pady": 5}
 
-    #TODO
-    app = App()
-    app_width = 1000
-    app_height = 600
-    app_window_size = f"{app_width}x{app_height}"
-    app.geometry(app_window_size)
-    app_color = "#%02x%02x%02x" % (235, 235, 235)
-    app.configure(bg=app_color)
-    app.mainloop()
+    root = tk.Tk()
+    width = 1000
+    height = 600
+    window_size = f"{width}x{height}"
+    root.geometry(window_size)
+    root_color = "#%02x%02x%02x" % (235, 235, 235)
+    root.configure(bg=root_color)
+
     ################################################################################
     # DB records
     ################################################################################
-#     stats = ttk.LabelFrame(root, text="Stats")
-#     stats.pack(side=tk.TOP, fill=tk.X, **frame_padding)
-# 
-#     records_label = ttk.Label(stats, text="Songs:")
-#     records_label.pack(side=tk.LEFT)
-#     records_amt = ttk.Label(stats)
-#     records_amt.pack(side=tk.LEFT)
-# 
-#     artists_label = ttk.Label(stats, text="Artists:")
-#     artists_label.pack(side=tk.LEFT)
-#     artists_amt = ttk.Label(stats)
-#     artists_amt.pack(side=tk.LEFT)
+    stats = ttk.LabelFrame(root, text="Stats")
+    stats.pack(side=tk.TOP, fill=tk.X, **frame_padding)
+
+    records_label = ttk.Label(stats, text="Songs:")
+    records_label.pack(side=tk.LEFT)
+    records_amt = ttk.Label(stats)
+    records_amt.pack(side=tk.LEFT)
+
+    artists_label = ttk.Label(stats, text="Artists:")
+    artists_label.pack(side=tk.LEFT)
+    artists_amt = ttk.Label(stats)
+    artists_amt.pack(side=tk.LEFT)
 
 
     ################################################################################
     # Search Frame
     ################################################################################
+    search_frame = ttk.LabelFrame(root, text="Search")
+    search_frame.pack(side=tk.TOP, fill=tk.X, **frame_padding)
 
-#     search_frame = ttk.LabelFrame(root, text="Search")
-#     search_frame.pack(side=tk.TOP, fill=tk.X, **frame_padding)
+    # entryframe
+    entry_frame = ttk.Frame(search_frame)
+    entry_frame.pack(side=tk.LEFT)
 
-#     # entryframe
-#     entry_frame = ttk.Frame(search_frame)
-#     entry_frame.pack(side=tk.LEFT)
-# 
-#     # options frame
-#     options_frame = ttk.Frame(search_frame)
-#     options_frame.pack(side=tk.LEFT)
-# 
-#     # row container
-#     artist_search = ttk.Frame(entry_frame)
-#     artist_search.pack(side=tk.TOP, fill=tk.X)
-#     artist_search_label = ttk.Label(artist_search, text="Artist:", width=15)
-#     artist_search_label.pack(side=tk.LEFT)
-#     artist_search_entry = ttk.Entry(artist_search, style="TEntry", width=40)
-#     artist_search_entry.pack(side=tk.LEFT)
-# 
-#     # row container
-#     song_search = ttk.Frame(entry_frame)
-#     song_search.pack(side=tk.TOP, fill=tk.X)
-#     song_search_label = ttk.Label(song_search, text="Song:", width=15)
-#     song_search_label.pack(side=tk.LEFT)
-#     song_search_entry = ttk.Entry(song_search, style="TEntry", width=40)
-#     song_search_entry.pack(side=tk.LEFT)
-# 
-#     word_search_frame = ttk.Frame(entry_frame)
-#     word_search_frame.pack(side=tk.TOP, fill=tk.X)
-#     word_phrase_label = ttk.Label(word_search_frame, text="Word or phrase:", width=15)
-#     word_phrase_label.pack(side=tk.LEFT)
-#     word_phrase_entry = ttk.Entry(word_search_frame, width=40)
-#     word_phrase_entry.pack(side=tk.LEFT)
-# 
-#     search_btn = ttk.Button(search_frame, text="Search Lyrics", command=search)
-#     search_btn.pack(side=tk.RIGHT)
-# 
-# 
-#     # radio button rows
-#     top_radio_frame = ttk.Frame(options_frame)
-#     top_radio_frame.pack(side=tk.TOP)
-#     middle_radio_frame = ttk.Frame(options_frame)
-#     middle_radio_frame.pack(side=tk.TOP)
-#     bottom_radio_frame = ttk.Frame(options_frame)
-#     bottom_radio_frame.pack(side=tk.TOP)
-#  
-#     # artist options
-#     artist_option_var = tk.StringVar()
-#     artist_option_exact = ttk.Radiobutton(top_radio_frame, text="Exact", variable=artist_option_var, value=1)
-#     artist_option_exact.pack(side=tk.LEFT)
-#     artist_option_fuzzy = ttk.Radiobutton(top_radio_frame, text="Fuzzy", variable=artist_option_var, value=2)
-#     artist_option_fuzzy.pack(side=tk.LEFT)
-# 
-#     # song options
-#     song_option_var = tk.StringVar()
-#     song_option_exact = ttk.Radiobutton(middle_radio_frame, text="Exact", variable=song_option_var, value=1)
-#     song_option_exact.pack(side=tk.LEFT)
-#     song_option_fuzzy = ttk.Radiobutton(middle_radio_frame, text="Fuzzy", variable=song_option_var, value=2)
-#     song_option_fuzzy.pack(side=tk.LEFT)
-# 
-#     # word options
-#     word_option_var = tk.StringVar()
-#     word_option_exact = ttk.Radiobutton(bottom_radio_frame, text="Exact", variable=word_option_var, value=1)
-#     word_option_exact.pack(side=tk.LEFT)
-#     word_option_fuzzy = ttk.Radiobutton(bottom_radio_frame, text="Fuzzy", variable=word_option_var, value=2)
-#     word_option_fuzzy.pack(side=tk.LEFT)
-# 
-# 
+    # options frame
+    options_frame = ttk.Frame(search_frame)
+    options_frame.pack(side=tk.LEFT)
+
+    # row container
+    artist_search = ttk.Frame(entry_frame)
+    artist_search.pack(side=tk.TOP, fill=tk.X)
+    artist_search_label = ttk.Label(artist_search, text="Artist:", width=15)
+    artist_search_label.pack(side=tk.LEFT)
+    artist_search_entry = ttk.Entry(artist_search, style="TEntry", width=40)
+    artist_search_entry.pack(side=tk.LEFT)
+
+    # row container
+    song_search = ttk.Frame(entry_frame)
+    song_search.pack(side=tk.TOP, fill=tk.X)
+    song_search_label = ttk.Label(song_search, text="Song:", width=15)
+    song_search_label.pack(side=tk.LEFT)
+    song_search_entry = ttk.Entry(song_search, style="TEntry", width=40)
+    song_search_entry.pack(side=tk.LEFT)
+
+    word_search_frame = ttk.Frame(entry_frame)
+    word_search_frame.pack(side=tk.TOP, fill=tk.X)
+    word_phrase_label = ttk.Label(word_search_frame, text="Word or phrase:", width=15)
+    word_phrase_label.pack(side=tk.LEFT)
+    word_phrase_entry = ttk.Entry(word_search_frame, width=40)
+    word_phrase_entry.pack(side=tk.LEFT)
+
+    search_btn = ttk.Button(search_frame, text="Search Lyrics", command=search)
+    search_btn.pack(side=tk.RIGHT)
+
+
+    # radio button rows
+    top_radio_frame = ttk.Frame(options_frame)
+    top_radio_frame.pack(side=tk.TOP)
+    middle_radio_frame = ttk.Frame(options_frame)
+    middle_radio_frame.pack(side=tk.TOP)
+    bottom_radio_frame = ttk.Frame(options_frame)
+    bottom_radio_frame.pack(side=tk.TOP)
+
+    # artist options
+    artist_option_var = tk.StringVar()
+    artist_option_exact = ttk.Radiobutton(top_radio_frame, text="Exact", variable=artist_option_var, value=1)
+    artist_option_exact.pack(side=tk.LEFT)
+    artist_option_fuzzy = ttk.Radiobutton(top_radio_frame, text="Fuzzy", variable=artist_option_var, value=2)
+    artist_option_fuzzy.pack(side=tk.LEFT)
+
+    # song options
+    song_option_var = tk.StringVar()
+    song_option_exact = ttk.Radiobutton(middle_radio_frame, text="Exact", variable=song_option_var, value=1)
+    song_option_exact.pack(side=tk.LEFT)
+    song_option_fuzzy = ttk.Radiobutton(middle_radio_frame, text="Fuzzy", variable=song_option_var, value=2)
+    song_option_fuzzy.pack(side=tk.LEFT)
+
+    # word options
+    word_option_var = tk.StringVar()
+    word_option_exact = ttk.Radiobutton(bottom_radio_frame, text="Exact", variable=word_option_var, value=1)
+    word_option_exact.pack(side=tk.LEFT)
+    word_option_fuzzy = ttk.Radiobutton(bottom_radio_frame, text="Fuzzy", variable=word_option_var, value=2)
+    word_option_fuzzy.pack(side=tk.LEFT)
+
+
 
     ################################################################################
     # Search Results
     ################################################################################
-
-    #TODO
-    class Results(tk.Frame):
-        def __init__(self):
-            super().__init__()
-
     search_results_frame = ttk.LabelFrame(root, text="Results")
     search_results_frame.pack(fill=tk.BOTH, **frame_padding)
     search_results = ["Search for something"]
@@ -518,5 +425,4 @@ if __name__ == "__main__":
     # conveniences
     artist_search_entry.focus()
 
-#     root.mainloop()
-
+    root.mainloop()

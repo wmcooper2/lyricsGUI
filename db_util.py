@@ -57,9 +57,10 @@ def song_query(name: str) -> list:
     cur, con = connect()
     cur.execute('SELECT artist,song FROM songs WHERE song=?', (name,))
     results = cur.fetchall()
-    print("results:", results)
+#     print("results:", results)
     close_connection(cur, con)
-    return [r[0] for r in results]
+#     return [r[0] for r in results]
+    return results
 
 
 def _save(con) -> None:
