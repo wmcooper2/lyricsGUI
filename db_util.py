@@ -11,7 +11,7 @@ def connect():
 
 def artist(name: str) -> list:
     cur, con = connect()
-    cur.execute('SELECT song FROM songs WHERE artist=?', (name,))
+    cur.execute('SELECT song FROM demo WHERE artist=?', (name,))
     results = cur.fetchall()
     close_connection(cur, con)
     return [r[0] for r in results]
@@ -19,7 +19,7 @@ def artist(name: str) -> list:
 
 def artists() -> list:
     cur, con = connect()
-    cur.execute('SELECT DISTINCT artist FROM songs')
+    cur.execute('SELECT DISTINCT artist FROM demo')
     result = cur.fetchall()
     close_connection(cur, con)
     return result
@@ -27,7 +27,7 @@ def artists() -> list:
 
 def artist_count() -> int:
     cur, con = connect()
-    cur.execute('SELECT COUNT(DISTINCT artist) FROM songs')
+    cur.execute('SELECT COUNT(DISTINCT artist) FROM demo')
     result = cur.fetchall()[0][0]
     close_connection(cur, con)
     return result
@@ -36,7 +36,7 @@ def artist_count() -> int:
 def artist_and_song(artist: str, song: str) -> str:
     """Returns the lyrics of a song by a specific artist."""
     cur, con = connect()
-    cur.execute('SELECT lyrics FROM songs WHERE artist=? AND song=?', (artist, song))
+    cur.execute('SELECT lyrics FROM demo WHERE artist=? AND song=?', (artist, song))
     results = cur.fetchall()
     close_connection(cur, con)
     try:
@@ -47,7 +47,7 @@ def artist_and_song(artist: str, song: str) -> str:
 
 def record_count() -> int:
     cur, con = connect()
-    cur.execute('SELECT COUNT(*) FROM songs')
+    cur.execute('SELECT COUNT(*) FROM demo')
     result = cur.fetchall()[0][0]
     close_connection(cur, con)
     return result
@@ -55,7 +55,7 @@ def record_count() -> int:
 
 def song_query(name: str) -> list:
     cur, con = connect()
-    cur.execute('SELECT artist,song FROM songs WHERE song=?', (name,))
+    cur.execute('SELECT artist,song FROM demo WHERE song=?', (name,))
     results = cur.fetchall()
 #     print("results:", results)
     close_connection(cur, con)

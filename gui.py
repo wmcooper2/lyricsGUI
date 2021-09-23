@@ -14,11 +14,6 @@ from tkinter import scrolledtext
 # custom
 from db_util import *
 
-#Globals
-regex_results = []
-index = 0
-cancel_flag = False
-
 
 def ask_to_cancel_search() -> bool:
     message = messagebox.askyesno(title="Cancel Current Search", message="Another search is currently in process. Do you wish to cancel that search and start a new one?")
@@ -44,113 +39,6 @@ def long_search_message() -> bool:
     return message
 
 
-def regex_search(regex, index: int) -> None: 
-    global regex_results
-
-    cur, con = connect()
-    cur.execute('SELECT * FROM songs WHERE id>=? AND id<=?', (index, index+100))
-    records = cur.fetchall()
-
-    for record in records:
-        res = regex.search(record[3])
-        if res:
-            regex_results.append((record[0], record[1], record[2]))
-    close_connection(cur, con)
-
-
-def set_cancel_flag() -> None:
-    """Set the quit flag to True."""
-    global cancel_flag
-    cancel_flag = True
-
-
-def thread_manager(limit: int, regex: re.Pattern) -> None:
-    global progress
-    global index
-    global cancel_flag
-    step = 100
-
-    start_time = time.time()
-
-    # enable cancel button
-    cancel_btn.config(state=tk.NORMAL)
-
-    # ensure cancel_flag is false
-    cancel_flag = False
-
-    while index < limit and not cancel_flag:
-        thread = threading.Thread(target=regex_search, args=(regex, index))
-        thread.start()
-
-        # wait for the thread to finish
-        while thread.is_alive():
-            continue
-
-        thread.join()  # end the thread, (timeout=5) ? 
-        index += step
-
-        if progress.get() >= records:
-            break
-
-        progress_bar.step(step)
-
-    #one last update, then exit
-#     progress_bar.step(step)
-    #TODO:reset progress bar color
-    progress_bar.stop()
-    progress_bar["value"] = 0
-
-    # disable the cancel button
-    cancel_btn.config(state=tk.DISABLED)
-
-    # reset cancel_flag
-    cancel_flag = False
-
-    # let the user know the search is finished
-    searching_for["text"] = f"Search complete. {len(regex_results)} matches found."
-    
-    # reset the index counter
-    index = 0
-#     print("regex results: ", regex_results)
-
-    #TODO: show message that the search is finished and can be loaded into the current window, and saved into a file
-    save = messagebox.askyesno(title="Save to File?", message="Would you like to save the results to a CSV file? You can reload the results into other programs like Excel.")
-    if save:
-        #show save dialog
-        save_file = filedialog.asksaveasfilename()
-        print("Saving to:", save_file)
-        if save_file:
-            with open(save_file, "w+") as f:
-                writer = csv.writer(f, delimiter="|")
-                writer.writerows(regex_results)
-        print("Saved")
-    end_time = time.time()
-    print("Time taken:", (end_time - start_time) / 60, " minutes")
-
-
-def word_search(pattern: str, limit: int):
-    regex = re.compile(pattern)
-    searching_for["text"] = f"Searching for: {pattern}"
-
-    # clear lyrics text 
-    lyrics_textbox.delete("1.0", tk.END)
-
-    try:
-        #create main thread to manage the other threads
-        manager_thread = threading.Thread(target=thread_manager, args=(limit, regex))
-        manager_thread.start()
-    except RuntimeError:
-        pass
-
-
-def quit_gui() -> None:
-    """Quit the program."""
-    global cancel_flag
-    #shut down any running threads
-    cancel_flag = True
-    # threads.join() ?
-    quit()
-
 
 class Stats(tk.Frame):
     def __init__(self, master):
@@ -173,7 +61,7 @@ class Search(tk.Frame):
     def __init__(self, master):
         super().__init__()
         
-        self.records = record_count()
+        self.songs = record_count()
         self.artists = artist_count()
 
         self.root = ttk.LabelFrame(master, text="Search")
@@ -228,17 +116,15 @@ class Search(tk.Frame):
         self.slider = ttk.Scale(self.slider_frame, from_=0, to=5)
         self.slider.grid(row=0, column=1)
         
-        # searching for label
-        self.searching_for = ttk.Label(self.root, text="Searching for: Nothing yet...")
-        self.searching_for.grid(row=1, column=0, sticky=tk.W)
-
         # search/cancel button
         self.button = ttk.Button(self.root, text="Search", command=master.search)
         self.button.grid(row=2, column=10, columnspan=10)
 
         self.progress = tk.IntVar()
-        progress_bar = ttk.Progressbar(self.root, length=800, maximum=self.records, mode="determinate", variable=self.progress)
-        progress_bar.grid(row=2, column=0, columnspan=9)
+        self.progress_label = ttk.Label(self.root, text="Searching for: Nothing yet...")
+        self.progress_label.grid(row=1, column=0, sticky=tk.W)
+        self.progress_bar = ttk.Progressbar(self.root, length=800, maximum=self.songs, mode="determinate", variable=self.progress)
+        self.progress_bar.grid(row=2, column=0, columnspan=9)
 
         
 class Results(tk.Frame):
@@ -274,11 +160,14 @@ class App(tk.Tk):
         self.search = Search(self)
         self.results = Results(self)
 
+        self.regex_results = []
+        self.index = 0
+
         # conveniences
         self.search.artist.focus()
 
         # Quit button
-        self.quit_btn = ttk.Button(self, text="Quit", command=quit_gui)
+        self.quit_btn = ttk.Button(self, text="Quit", command=self.quit_gui)
         self.quit_btn.grid(row=3, column=10, sticky=tk.E)
 
 
@@ -306,6 +195,19 @@ class App(tk.Tk):
             #update the lyrics box
                 self.results.lyrics.delete("1.0", tk.END)
                 self.results.lyrics.insert("1.0", result)
+
+
+    def regex_search(self, regex, index: int) -> None: 
+        #TODO, move this to db_util
+        cur, con = connect()
+        cur.execute('SELECT * FROM demo WHERE id>=? AND id<=?', (index, index+100))
+        records = cur.fetchall()
+
+        for record in records:
+            res = regex.search(record[3])
+            if res:
+                self.regex_results.append((record[0], record[1], record[2]))
+        close_connection(cur, con)
 
 
     def search(self) -> None:
@@ -352,7 +254,7 @@ class App(tk.Tk):
 
         #w  : search for all the lyrics that contain that word
         elif w and not s and not a:
-            search_in_progress = cancel_btn["state"] is tk.NORMAL
+            search_in_progress = self.search.button["text"] != "Search"
             # if there is no search already running
             if search_in_progress:
                 cancel = ask_to_cancel_search()
@@ -360,15 +262,12 @@ class App(tk.Tk):
                     # then run a search
                     message = long_search_message()
                     if message:
-                        word_search(w, records)
-                        cancel_btn.config(state=tk.NORMAL)
+                        self.word_search(w, self.songs)
             else:
                 # then run a search
                 message = long_search_message()
                 if message:
-                    word_search(w, records)
-                    # set cancel on progress bar to enabled
-                    cancel_btn.config(state=tk.NORMAL)
+                    self.word_search(w, self.search.songs)
 
         # s : load all songs with that title
         elif not w and s and not a:
@@ -399,6 +298,91 @@ class App(tk.Tk):
         #none, no input was given
         else:
             input_something_message()
+
+
+#     def set_cancel_flag(self) -> None:
+#         """Set the cancel flag to True."""
+#         self.cancel_flag = True
+
+
+    def thread_manager(self, limit: int, regex: re.Pattern) -> None:
+        step = 100
+        start_time = time.time()
+
+        # ensure cancel_flag is false
+        self.cancel_flag = False
+
+        #TODO set search button to cancel and toggle its functionality
+
+        while self.index < limit and not self.cancel_flag:
+            thread = threading.Thread(target=self.regex_search, args=(regex, self.index))
+            thread.start()
+
+            # wait for the thread to finish
+            while thread.is_alive():
+                continue
+
+            thread.join()  # end the thread, (timeout=5) ? 
+            self.index += step
+
+            if self.search.progress.get() >= self.search.songs:
+                break
+
+            self.search.progress_bar.step(step)
+
+        #one last update, then exit
+    #     progress_bar.step(step)
+        #TODO:reset progress bar color
+        self.search.progress_bar.stop()
+        self.search.progress_bar["value"] = 0
+
+        # reset cancel_flag
+        self.cancel_flag = False
+
+        # let the user know the search is finished
+        self.search.progress_label["text"] = f"Search complete. {len(self.regex_results)} matches found."
+        
+        # reset the index counter
+        self.index = 0
+
+        #TODO: show message that the search is finished and can be loaded into the current window, and saved into a file
+        save = messagebox.askyesno(title="Save to File?", message="Would you like to save the results to a CSV file? You can reload the results into other programs like Excel.")
+        if save:
+            #show save dialog
+            save_file = filedialog.asksaveasfilename()
+            print("Saving to:", save_file)
+            if save_file:
+                with open(save_file, "w+") as f:
+                    writer = csv.writer(f, delimiter="|")
+                    writer.writerows(self.regex_results)
+            print("Saved")
+        end_time = time.time()
+        print("Time taken:", (end_time - start_time) / 60, " minutes")
+
+
+    def word_search(self, pattern: str, limit: int):
+        regex = re.compile(pattern)
+        self.search.progress_label["text"] = f"Searching for: {pattern}"
+
+        # clear lyrics text 
+        self.results.lyrics.delete("1.0", tk.END)
+
+        try:
+            #create main thread to manage the other threads
+            manager_thread = threading.Thread(target=self.thread_manager, args=(limit, regex))
+            manager_thread.start()
+        except RuntimeError:
+            pass
+
+    def quit_gui(self) -> None:
+        """Quit the program."""
+        #shut down any running threads
+        self.cancel_flag = True
+
+        # threads.join() ?
+        quit()
+
+
 
 
 
