@@ -226,6 +226,8 @@ class App(tk.Tk):
         s = self.search.song.get().strip()
         w = self.search.word.get().strip()
 
+        #TODO: add fuzzy search option (exact is the default)
+
         #wsa: if that song by that artist exists, then highlight its lyrics
         if w and s and a:
     #         artists = song_query(s)
@@ -298,11 +300,6 @@ class App(tk.Tk):
         #none, no input was given
         else:
             input_something_message()
-
-
-#     def set_cancel_flag(self) -> None:
-#         """Set the cancel flag to True."""
-#         self.cancel_flag = True
 
 
     def thread_manager(self, limit: int, regex: re.Pattern) -> None:
