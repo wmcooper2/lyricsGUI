@@ -35,32 +35,6 @@ def count_files(dir_: str) -> None:
     root.update()
 
 
-def handle_results_click(option: str) -> None:
-    """Load the selected song's lyrics into the lyrics box."""
-    index = list_results.curselection()
-    selection = None
-    try:
-        selection = option.widget.get(index)
-    except tk.TclError:
-        pass
-
-    artist = artist_search_entry.get().strip()
-    song = song_search_entry.get().strip()
-    result = None
-    
-    if selection:
-        if artist and not song:
-            result = artist_and_song(artist, selection)
-
-        elif song and not artist:
-            result = artist_and_song(selection, song)
-        
-        if result:
-        #update the lyrics box
-            lyrics_textbox.delete("1.0", tk.END)
-            lyrics_textbox.insert("1.0", result)
-
-
 def input_something_message() -> None:
     messagebox.showinfo(title="Advice", message="Input something to begin a search.")
 
@@ -82,101 +56,6 @@ def regex_search(regex, index: int) -> None:
         if res:
             regex_results.append((record[0], record[1], record[2]))
     close_connection(cur, con)
-
-
-def search() -> None:
-    """Perform database query.
-
-    Possible Search Patterns:
-        Artist  X   X   X   O   X   O   O   O
-        Song    X   X   O   X   O   X   O   O
-        Word    X   O   X   X   O   O   X   O
-    """
-
-    # clear the listbox's contents
-    list_results.delete(0, tk.END)
-
-    a = artist_search_entry.get().strip()
-    s = song_search_entry.get().strip()
-    w = word_phrase_entry.get().strip()
-
-    #wsa: if that song by that artist exists, then highlight its lyrics
-    if w and s and a:
-#         artists = song_query(s)
-        print("TODO: Need to add highlighting to lyrics.")
-
-    #ws : load the song, then highlight its lyrics
-    elif w and s and not a:
-        print("TODO: Need to add highlighting to lyrics.")
-#         artists = song_query(s)
-
-    #w a: load all the songs by the artist, then for each song highlight the matching words
-    elif w and not s and a:
-        print("TODO: Need to add highlighting to lyrics.")
-#         artists = song_query(s)
-
-    # sa: show lyrics for that song from that artist
-    elif not w and s and a:
-        result = artist_and_song(a, s)
-        if result:
-            lyrics_textbox.delete("1.0", tk.END)
-            lyrics_textbox.insert("1.0", result)
-        else:
-            lyrics_textbox.delete("1.0", tk.END)
-            list_results.delete(0, tk.END)
-            list_results.insert(0, "No matching results.")
-
-    #w  : search for all the lyrics that contain that word
-    elif w and not s and not a:
-        search_in_progress = cancel_btn["state"] is tk.NORMAL
-        # if there is no search already running
-        if search_in_progress:
-            cancel = ask_to_cancel_search()
-            if cancel:
-                # then run a search
-                message = long_search_message()
-                if message:
-                    word_search(w, records)
-                    cancel_btn.config(state=tk.NORMAL)
-        else:
-            # then run a search
-            message = long_search_message()
-            if message:
-                word_search(w, records)
-                # set cancel on progress bar to enabled
-                cancel_btn.config(state=tk.NORMAL)
-                    
-
-
-    # s : load all songs with that title
-    elif not w and s and not a:
-        songs = song_query(s)
-        if len(songs) > 1:
-            amt = 0
-            for index, song in enumerate(sorted(songs, reverse=True)):
-                list_results.insert(0, f'"{song[1]}" by {song[0]}')
-                amt = index
-        elif len(songs) == 1:
-            for song in songs:
-                list_results.insert(0, f'"{song[1]}" by {song[0]}')
-        else:
-            lyrics_textbox.delete("1.0", tk.END)
-            list_results.delete(0, tk.END)
-            list_results.insert(0, "No matching results.")
-
-    #  a: load all songs written by that artist
-    elif not w and not s and a:
-        lyrics_textbox.delete("1.0", tk.END)
-        songs = artist(a)
-        list_results.delete(0, tk.END)
-        amt = 0
-        for index, song in enumerate(sorted(songs, reverse=True)):
-            list_results.insert(0, song)
-            amt = index
-
-    #none, no input was given
-    else:
-        input_something_message()
 
 
 def set_cancel_flag() -> None:
@@ -264,7 +143,6 @@ def word_search(pattern: str, limit: int):
         pass
 
 
-
 def quit_gui() -> None:
     """Quit the program."""
     global cancel_flag
@@ -273,101 +151,263 @@ def quit_gui() -> None:
     # threads.join() ?
     quit()
 
+
 class Stats(tk.Frame):
     def __init__(self, master):
         super().__init__()
         self.root = ttk.LabelFrame(master, text="Stats")
-        self.root.pack(side=tk.TOP, fill=tk.X, **frame_padding)
+        self.root.grid(row=0, column=0, sticky=tk.W)
 
-        records_label = ttk.Label(self.root, text="Songs:")
-        records_label.pack(side=tk.LEFT)
-        records_amt = ttk.Label(self.root)
-        records_amt.pack(side=tk.LEFT)
+        self.records_label = ttk.Label(self.root, text="Songs:")
+        self.records_label.grid(row=0, column=0)
+        self.records_amt = ttk.Label(self.root, text="Loading...")
+        self.records_amt.grid(row=0, column=1)
 
-        artists_label = ttk.Label(self.root, text="Artists:")
-        artists_label.pack(side=tk.LEFT)
-        artists_amt = ttk.Label(self.root)
-        artists_amt.pack(side=tk.LEFT)
+        self.artists_label = ttk.Label(self.root, text="Artists:")
+        self.artists_label.grid(row=0, column=3)
+        self.artists_amt = ttk.Label(self.root, text="Loading...")
+        self.artists_amt.grid(row=0, column=4)
+
 
 class Search(tk.Frame):
     def __init__(self, master):
         super().__init__()
+        
+        self.records = record_count()
+        self.artists = artist_count()
+
         self.root = ttk.LabelFrame(master, text="Search")
-        self.root.pack(side=tk.TOP, fill=tk.X, **frame_padding)
+        self.root.grid(row=1, column=0)
 
-        # entryframe
+        # ENTRY FRAME
         self.entry_frame = ttk.Frame(self.root)
-        self.entry_frame.pack(side=tk.LEFT)
+        self.entry_frame.grid(row=0, column=0, sticky=tk.W)
 
-        # row container
-        self.artist_search = ttk.Frame(self.entry_frame)
-        self.artist_search.pack(side=tk.TOP, fill=tk.X)
-        self.artist_search_label = ttk.Label(self.artist_search, text="Artist:", width=15)
-        self.artist_search_label.pack(side=tk.LEFT)
-        self.artist_search_entry = ttk.Entry(self.artist_search, style="TEntry", width=40)
-        self.artist_search_entry.pack(side=tk.LEFT)
+        # OPTIONS FRAME
+        self.options_frame = ttk.Frame(self.root)
+        self.options_frame.grid(row=0, column=1, sticky=tk.E)
+
+        # search entry rows
+        self.artist_frame = ttk.Frame(self.entry_frame)
+        self.artist_frame.grid(row=0, column=0)
+        self.artist_search_label = ttk.Label(self.artist_frame, text="Artist:", width=15)
+        self.artist_search_label.grid(row=0, column=0)
+        self.artist = ttk.Entry(self.artist_frame, style="TEntry", width=40)
+        self.artist.grid(row=0, column=1)
 
         # song row
-        self.song_search = ttk.Frame(self.entry_frame)
-        self.song_search.pack(side=tk.TOP, fill=tk.X)
-        self.song_search_label = ttk.Label(self.song_search, text="Song:", width=15)
-        self.song_search_label.pack(side=tk.LEFT)
-        self.song_search_entry = ttk.Entry(self.song_search, style="TEntry", width=40)
-        self.song_search_entry.pack(side=tk.LEFT)
+        self.song_frame = ttk.Frame(self.entry_frame)
+        self.song_frame.grid(row=1, column=0)
+        self.song_search_label = ttk.Label(self.song_frame, text="Song:", width=15)
+        self.song_search_label.grid(row=0, column=0)
+        self.song = ttk.Entry(self.song_frame, style="TEntry", width=40)
+        self.song.grid(row=0, column=1)
 
         # word row
-        self.word_search_frame = ttk.Frame(self.entry_frame)
-        self.word_search_frame.pack(side=tk.TOP, fill=tk.X)
-        self.word_phrase_label = ttk.Label(self.word_search_frame, text="Word or phrase:", width=15)
-        self.word_phrase_label.pack(side=tk.LEFT)
-        self.word_phrase_entry = ttk.Entry(self.word_search_frame, width=40)
-        self.word_phrase_entry.pack(side=tk.LEFT)
-
-#         self.search_btn = ttk.Button(self.search_frame, text="Search Lyrics", command=search)
-        self.search_btn = ttk.Button(self, text="Search Lyrics")
-        self.search_btn.pack(side=tk.RIGHT)
-
-        # options frame
-        self.options_frame = ttk.Frame(self.root)
-        self.options_frame.pack(side=tk.LEFT, expand=True)
-
-        # radio button row
-        self.top_options_frame = ttk.Frame(self.options_frame)
-        self.top_options_frame.pack(side=tk.TOP)
+        self.word_frame = ttk.Frame(self.entry_frame)
+        self.word_frame.grid(row=2, column=0)
+        self.word_phrase_label = ttk.Label(self.word_frame, text="Word or phrase:", width=15)
+        self.word_phrase_label.grid(row=0, column=0)
+        self.word = ttk.Entry(self.word_frame, width=40)
+        self.word.grid(row=0, column=1)
 
         # exact/fuzzy options
-        self.radiobutton_frame = ttk.Frame(self.top_options_frame)
-        self.radiobutton_frame.pack(side=tk.TOP)
+        self.radiobutton_frame = ttk.Frame(self.options_frame)
+        self.radiobutton_frame.grid(row=0, column=0, sticky=tk.E)
         self.artist_option_var = tk.StringVar()
         self.artist_option_exact = ttk.Radiobutton(self.radiobutton_frame, text="Exact", variable=self.artist_option_var, value=1)
-        self.artist_option_exact.pack(side=tk.LEFT)
+        self.artist_option_exact.grid(row=0, column=0)
         self.artist_option_fuzzy = ttk.Radiobutton(self.radiobutton_frame, text="Fuzzy", variable=self.artist_option_var, value=2)
-        self.artist_option_fuzzy.pack(side=tk.LEFT)
+        self.artist_option_fuzzy.grid(row=0, column=1)
         
         # max words between
         self.slider_frame = ttk.Frame(self.options_frame)
-        self.slider_frame.pack(side=tk.TOP)
+        self.slider_frame.grid(row=1, column=0, sticky=tk.E)
         self.slider_label = ttk.Label(self.slider_frame, text="Max words between:")
-        self.slider_label.pack(side=tk.LEFT)
+        self.slider_label.grid(row=0, column=0)
         self.slider = ttk.Scale(self.slider_frame, from_=0, to=5)
-        self.slider.pack(side=tk.LEFT)
+        self.slider.grid(row=0, column=1)
+        
+        # searching for label
+        self.searching_for = ttk.Label(self.root, text="Searching for: Nothing yet...")
+        self.searching_for.grid(row=1, column=0, sticky=tk.W)
+
+        # search/cancel button
+        self.button = ttk.Button(self.root, text="Search", command=master.search)
+        self.button.grid(row=2, column=10, columnspan=10)
+
+        self.progress = tk.IntVar()
+        progress_bar = ttk.Progressbar(self.root, length=800, maximum=self.records, mode="determinate", variable=self.progress)
+        progress_bar.grid(row=2, column=0, columnspan=9)
+
+        
+class Results(tk.Frame):
+    def __init__(self, master):
+        super().__init__()
+        self.root = ttk.LabelFrame(master, text="Results")
+        self.root.grid(row=2, column=0)
+
+        # TODO:text results frame
+
+        self.search_results = ["Search results appear here."]
+        self.list_items = tk.StringVar(value=self.search_results)
+
+        self.list_ = tk.Listbox(self.root, width=40, height=15, listvariable=self.list_items, selectmode=tk.SINGLE)
+        self.list_.bind("<<ListboxSelect>>", master.handle_results_click)
+        self.list_.grid(row=0, column=0)
+        self.scrollbar = tk.Scrollbar(self.list_)
+        self.scrollbar.config(command=self.list_.yview)
+        self.list_.config(yscrollcommand=self.scrollbar.set)
+
+        self.lyrics = tk.scrolledtext.ScrolledText(self.root, height=20, width=60, wrap=tk.WORD)
+        self.lyrics.grid(row=0, column=1)
 
 
 class App(tk.Tk):
     def __init__(self):
         super().__init__()
-        self.stats = Stats(self)
+#         self.stats = Stats(self)
+#         # display simple stats
+#         self.stats.records_amt["text"] = self.records
+#         self.stats.artists_amt["text"] = self.artists
+
         self.search = Search(self)
+        self.results = Results(self)
+
+        # conveniences
+        self.search.artist.focus()
+
+        # Quit button
+        self.quit_btn = ttk.Button(self, text="Quit", command=quit_gui)
+        self.quit_btn.grid(row=3, column=10, sticky=tk.E)
+
+
+    def handle_results_click(self, option: str) -> None:
+        """Load the selected song's lyrics into the lyrics box."""
+        index = self.results.list_.curselection()
+        selection = None
+        try:
+            selection = option.widget.get(index)
+        except tk.TclError:
+            pass
+
+        artist = self.search.artist.get().strip()
+        song = self.search.song.get().strip()
+        result = None
+        
+        if selection:
+            if artist and not song:
+                result = artist_and_song(artist, selection)
+
+            elif song and not artist:
+                result = artist_and_song(selection, song)
+            
+            if result:
+            #update the lyrics box
+                self.results.lyrics.delete("1.0", tk.END)
+                self.results.lyrics.insert("1.0", result)
+
+
+    def search(self) -> None:
+        """Perform database query.
+
+        Possible Search Patterns:
+            Artist  X   X   X   O   X   O   O   O
+            Song    X   X   O   X   O   X   O   O
+            Word    X   O   X   X   O   O   X   O
+        """
+
+        # clear the listbox's contents
+        self.results.list_.delete(0, tk.END)
+
+        a = self.search.artist.get().strip()
+        s = self.search.song.get().strip()
+        w = self.search.word.get().strip()
+
+        #wsa: if that song by that artist exists, then highlight its lyrics
+        if w and s and a:
+    #         artists = song_query(s)
+            print("TODO: Need to add highlighting to lyrics.")
+
+        #ws : load the song, then highlight its lyrics
+        elif w and s and not a:
+            print("TODO: Need to add highlighting to lyrics.")
+    #         artists = song_query(s)
+
+        #w a: load all the songs by the artist, then for each song highlight the matching words
+        elif w and not s and a:
+            print("TODO: Need to add highlighting to lyrics.")
+    #         artists = song_query(s)
+
+        # sa: show lyrics for that song from that artist
+        elif not w and s and a:
+            result = artist_and_song(a, s)
+            if result:
+                self.results.lyrics.delete("1.0", tk.END)
+                self.results.lyrics.insert("1.0", result)
+            else:
+                self.results.lyrics.delete("1.0", tk.END)
+                self.results.list_results.delete(0, tk.END)
+                self.results.list_results.insert(0, "No matching results.")
+
+        #w  : search for all the lyrics that contain that word
+        elif w and not s and not a:
+            search_in_progress = cancel_btn["state"] is tk.NORMAL
+            # if there is no search already running
+            if search_in_progress:
+                cancel = ask_to_cancel_search()
+                if cancel:
+                    # then run a search
+                    message = long_search_message()
+                    if message:
+                        word_search(w, records)
+                        cancel_btn.config(state=tk.NORMAL)
+            else:
+                # then run a search
+                message = long_search_message()
+                if message:
+                    word_search(w, records)
+                    # set cancel on progress bar to enabled
+                    cancel_btn.config(state=tk.NORMAL)
+
+        # s : load all songs with that title
+        elif not w and s and not a:
+            songs = song_query(s)
+            if len(songs) > 1:
+                amt = 0
+                for index, song in enumerate(sorted(songs, reverse=True)):
+                    self.results.list_.insert(0, f'"{song[1]}" by {song[0]}')
+                    amt = index
+            elif len(songs) == 1:
+                for song in songs:
+                    self.results.list_.insert(0, f'"{song[1]}" by {song[0]}')
+            else:
+                self.results.lyrics.delete("1.0", tk.END)
+                self.results.list_.delete(0, tk.END)
+                self.results.list_.insert(0, "No matching results.")
+
+        #  a: load all songs written by that artist
+        elif not w and not s and a:
+            self.results.lyrics.delete("1.0", tk.END)
+            songs = artist(a)
+            self.results.list_.delete(0, tk.END)
+            amt = 0
+            for index, song in enumerate(sorted(songs, reverse=True)):
+                self.results.list_.insert(0, song)
+                amt = index
+
+        #none, no input was given
+        else:
+            input_something_message()
+
+
+
+
 
 if __name__ == "__main__":
-    # load some simple stats
-    records = record_count()
-    artists = artist_count()
-
     frame_padding = {"padx": 10, "pady": 10}
     root_padding = {"padx": 5, "pady": 5}
 
-    #TODO
     app = App()
     app_width = 1000
     app_height = 600
@@ -376,147 +416,3 @@ if __name__ == "__main__":
     app_color = "#%02x%02x%02x" % (235, 235, 235)
     app.configure(bg=app_color)
     app.mainloop()
-    ################################################################################
-    # DB records
-    ################################################################################
-#     stats = ttk.LabelFrame(root, text="Stats")
-#     stats.pack(side=tk.TOP, fill=tk.X, **frame_padding)
-# 
-#     records_label = ttk.Label(stats, text="Songs:")
-#     records_label.pack(side=tk.LEFT)
-#     records_amt = ttk.Label(stats)
-#     records_amt.pack(side=tk.LEFT)
-# 
-#     artists_label = ttk.Label(stats, text="Artists:")
-#     artists_label.pack(side=tk.LEFT)
-#     artists_amt = ttk.Label(stats)
-#     artists_amt.pack(side=tk.LEFT)
-
-
-    ################################################################################
-    # Search Frame
-    ################################################################################
-
-#     search_frame = ttk.LabelFrame(root, text="Search")
-#     search_frame.pack(side=tk.TOP, fill=tk.X, **frame_padding)
-
-#     # entryframe
-#     entry_frame = ttk.Frame(search_frame)
-#     entry_frame.pack(side=tk.LEFT)
-# 
-#     # options frame
-#     options_frame = ttk.Frame(search_frame)
-#     options_frame.pack(side=tk.LEFT)
-# 
-#     # row container
-#     artist_search = ttk.Frame(entry_frame)
-#     artist_search.pack(side=tk.TOP, fill=tk.X)
-#     artist_search_label = ttk.Label(artist_search, text="Artist:", width=15)
-#     artist_search_label.pack(side=tk.LEFT)
-#     artist_search_entry = ttk.Entry(artist_search, style="TEntry", width=40)
-#     artist_search_entry.pack(side=tk.LEFT)
-# 
-#     # row container
-#     song_search = ttk.Frame(entry_frame)
-#     song_search.pack(side=tk.TOP, fill=tk.X)
-#     song_search_label = ttk.Label(song_search, text="Song:", width=15)
-#     song_search_label.pack(side=tk.LEFT)
-#     song_search_entry = ttk.Entry(song_search, style="TEntry", width=40)
-#     song_search_entry.pack(side=tk.LEFT)
-# 
-#     word_search_frame = ttk.Frame(entry_frame)
-#     word_search_frame.pack(side=tk.TOP, fill=tk.X)
-#     word_phrase_label = ttk.Label(word_search_frame, text="Word or phrase:", width=15)
-#     word_phrase_label.pack(side=tk.LEFT)
-#     word_phrase_entry = ttk.Entry(word_search_frame, width=40)
-#     word_phrase_entry.pack(side=tk.LEFT)
-# 
-#     search_btn = ttk.Button(search_frame, text="Search Lyrics", command=search)
-#     search_btn.pack(side=tk.RIGHT)
-# 
-# 
-#     # radio button rows
-#     top_radio_frame = ttk.Frame(options_frame)
-#     top_radio_frame.pack(side=tk.TOP)
-#     middle_radio_frame = ttk.Frame(options_frame)
-#     middle_radio_frame.pack(side=tk.TOP)
-#     bottom_radio_frame = ttk.Frame(options_frame)
-#     bottom_radio_frame.pack(side=tk.TOP)
-#  
-#     # artist options
-#     artist_option_var = tk.StringVar()
-#     artist_option_exact = ttk.Radiobutton(top_radio_frame, text="Exact", variable=artist_option_var, value=1)
-#     artist_option_exact.pack(side=tk.LEFT)
-#     artist_option_fuzzy = ttk.Radiobutton(top_radio_frame, text="Fuzzy", variable=artist_option_var, value=2)
-#     artist_option_fuzzy.pack(side=tk.LEFT)
-# 
-#     # song options
-#     song_option_var = tk.StringVar()
-#     song_option_exact = ttk.Radiobutton(middle_radio_frame, text="Exact", variable=song_option_var, value=1)
-#     song_option_exact.pack(side=tk.LEFT)
-#     song_option_fuzzy = ttk.Radiobutton(middle_radio_frame, text="Fuzzy", variable=song_option_var, value=2)
-#     song_option_fuzzy.pack(side=tk.LEFT)
-# 
-#     # word options
-#     word_option_var = tk.StringVar()
-#     word_option_exact = ttk.Radiobutton(bottom_radio_frame, text="Exact", variable=word_option_var, value=1)
-#     word_option_exact.pack(side=tk.LEFT)
-#     word_option_fuzzy = ttk.Radiobutton(bottom_radio_frame, text="Fuzzy", variable=word_option_var, value=2)
-#     word_option_fuzzy.pack(side=tk.LEFT)
-# 
-# 
-
-    ################################################################################
-    # Search Results
-    ################################################################################
-
-    #TODO
-    class Results(tk.Frame):
-        def __init__(self):
-            super().__init__()
-
-    search_results_frame = ttk.LabelFrame(root, text="Results")
-    search_results_frame.pack(fill=tk.BOTH, **frame_padding)
-    search_results = ["Search for something"]
-    list_items = tk.StringVar(value=search_results)
-
-    list_results = tk.Listbox(search_results_frame, width=40, height=15, listvariable=list_items, selectmode=tk.SINGLE)
-    list_results.bind("<<ListboxSelect>>", handle_results_click)
-    list_results.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
-
-    scrollbar = tk.Scrollbar(list_results)
-    scrollbar.config(command=list_results.yview)
-    list_results.config(yscrollcommand=scrollbar.set)
-
-    lyrics_textbox = tk.scrolledtext.ScrolledText(search_results_frame, height=20, width=60, wrap=tk.WORD)
-    lyrics_textbox.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
-
-
-    ################################################################################
-    # Progress Bar
-    ################################################################################
-    progress_footer = ttk.Frame(root)
-    progress_footer.pack(side=tk.TOP)
-    progress = tk.IntVar()
-    progress_bar = ttk.Progressbar(progress_footer, length=width-100, maximum=records, mode="determinate", variable=progress)
-    progress_bar.pack(side=tk.LEFT)
-    cancel_btn = ttk.Button(progress_footer, text="Cancel", state=tk.DISABLED, command=set_cancel_flag)
-    cancel_btn.pack(side=tk.RIGHT)
-
-    # Regex Search Label
-    searching_for = ttk.Label(root, text="Searching for:")
-    searching_for.pack(side=tk.LEFT, **root_padding)
-
-    # Quit button
-    quit_btn = ttk.Button(root, text="Quit", command=quit_gui)
-    quit_btn.pack(side=tk.RIGHT, **root_padding)
-
-    # display simple stats
-    records_amt["text"] = records
-    artists_amt["text"] = artists
-
-    # conveniences
-    artist_search_entry.focus()
-
-#     root.mainloop()
-

@@ -4,7 +4,7 @@ import sqlite3
 
 
 def connect():
-    con = sqlite3.connect("Databases/lyrics.db")
+    con = sqlite3.connect("Databases/demo.db")
     cur = con.cursor()
     return cur, con
 
