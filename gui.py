@@ -139,12 +139,12 @@ class Search(tk.Frame):
         self.slider_label["text"] = f"Up to {int(float(value))} words between."
 
     def disable_fuzzy_search(self):
-#         self.slider.set(state = "disabled")
+        self.fuzzy = False
         self.slider.state(["disabled"])
 
     def enable_fuzzy_search(self):
+        self.fuzzy = True
         self.slider.state(["!disabled"])
-        print("enabled fuzzy")
 
         
 
@@ -195,6 +195,8 @@ class LyricsTab(tk.Frame):
 
         self.regex_results = []
         self.index = 0
+        self.fuzzy = False
+
 
         # conveniences
         self.search.artist.focus()
@@ -263,13 +265,12 @@ class LyricsTab(tk.Frame):
         a = self.search.artist.get().strip()
         s = self.search.song.get().strip()
         w = self.search.word.get().strip()
-        fuzzy = self.fuzzy
 
         #TODO: add fuzzy search option (exact is the default)
 
         #wsa: if that song by that artist exists, then highlight its lyrics
         if w and s and a:
-            #if fuzzy:
+#             if self.fuzzy:
     #         artists = song_query(s)
             print("TODO: Need to add highlighting to lyrics.")
 
@@ -334,14 +335,33 @@ class LyricsTab(tk.Frame):
 
         #  a: load all songs written by that artist
         elif not w and not s and a:
-            #if fuzzy:
-            self.results.lyrics.delete("1.0", tk.END)
-            songs = artist(a)
-            self.results.list_.delete(0, tk.END)
-            amt = 0
-            for index, song in enumerate(sorted(songs, reverse=True)):
-                self.results.list_.insert(0, song)
-                amt = index
+            if self.fuzzy:
+                songs = fuzzy_artist(a)
+#                 self.results.list_.delete(0, tk.END)
+#                 amt = 0
+#                 for index, song in enumerate(sorted(songs, reverse=True)):
+#                     self.results.list_.insert(0, song)
+#                     amt = index
+            else:
+                self.results.lyrics.delete("1.0", tk.END)
+                songs = artist(a)
+#                 self.results.list_.delete(0, tk.END)
+#                 amt = 0
+#                 for index, song in enumerate(sorted(songs, reverse=True)):
+#                     self.results.list_.insert(0, song)
+#                     amt = index
+
+            if songs:
+                self.results.list_.delete(0, tk.END)
+                amt = 0
+                for index, song in enumerate(sorted(songs, reverse=True)):
+                    self.results.list_.insert(0, song)
+                    amt = index
+            else:
+                self.results.list_.delete(0, tk.END)
+                self.results.list_.insert(0, "No matches found.")
+
+
 
         #none, no input was given
         else:

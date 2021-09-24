@@ -45,6 +45,20 @@ def artist_and_song(artist: str, song: str) -> str:
         return []
 
 
+def fuzzy_artist(name: str) -> list:
+    cur, con = connect()
+#     cur.execute('SELECT song FROM demo WHERE artist=?', (name,))
+#     regex = "%"+name[1:]
+#     cur.execute('SELECT song FROM demo WHERE artist LIKE ?', (regex,))
+    lower = name.lower()
+#     upper = name.upper()
+#     cur.execute('SELECT song FROM demo WHERE LOWER(artist)=?', (lower,))
+    results = cur.fetchall()
+    close_connection(cur, con)
+    return [r[0] for r in results]
+
+
+
 def record_count() -> int:
     cur, con = connect()
     cur.execute('SELECT COUNT(*) FROM demo')
