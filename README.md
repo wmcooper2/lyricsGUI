@@ -3,24 +3,15 @@ A CLI tool for setting up the Lyrics database.
 ![Screenshot](screenshot.png)
 
 ### TODO
-1. redo demo database with new sqlite3 setup
-2. write tests
-3. Add notebook tabs
-4. Add Youtube video lookup functionality.
-
-
-### Demo
-To run a demo, which only uses the functions from search.py, run:  
-    `python3 demo.py --demo`  
-Then follow the prompts.
-
+1. write tests
+2. Add notebook tabs
+3. Add Youtube video lookup functionality.
 
 ### Purpose(s)
-To setup a database for a future lyrics search program.
-Store artists and song names in SQL database.
-Store all 616,000+ songs in a tarball.
-Prepare the data for use in a pi-cluster.
-To search through the data collection concurrently.
+To setup a database for a future lyrics search program.  
+Store artists and song names in SQL database.  
+To search through the data collection concurrently.  
+To find YouTube videos that match the lyrics.  
 
 ### Important Points
 The final program will contain 5 major stages/areas:  
@@ -32,35 +23,29 @@ The final program will contain 5 major stages/areas:
     * Metrics   - calculate metrics that require iterating through the entire data set  
     * Recommend - using user profiles and data about the lyrics, recommend other forms of media related to the user's search  
 
-### Naming Conventions
-* TarInfo objects names;
-    * are case sensitive
-    * artist and song name are separated by underscore
-    * and the file has the ".txt" suffix (for when it is extracted)
-    * example: `Artist_Song Name.txt`
-
 ### Setup
 1. Make sure `Databases/lyrics.csv` exists.
 2. Run `init_database.py` once.
-3. Inspect the contents of the DB with "DB Browser for SQLite" application.
+3. Inspect the contents of the DB with "DB Browser for SQLite" application or shell.
 
 ### Operation
-1. "Moved to argparse CLI tool description."
-2. "Moved to argparse CLI tool description."
-3. METRICS
-    * Generate metrics as needed.
-    * For each different metric;
-        * make the function that you need to calculate it
-        * add a field in the DB
-        * distribute the new code to the cluster nodes
-4. "Moved to argparse CLI tool description."
-5. RECOMMENDATION
+Run `guy.py`  
+
+Possible Search Patterns:  
+
+|Search Input|||||||||  
+|---|---|---|---|---|---|---|---|---|---|  
+|Artist  |X   |X   |X   |O   |X   |O   |O   |O
+|Song    |X   |X   |O   |X   |O   |X   |O   |O
+|Word    |X   |O   |X   |X   |O   |O   |X   |O
+
+
 
 ### Testing
-* Run `./test` from project dir
-* (TODO) Run `./reset` to clear the contents of `support/` 
-* The "coverage" 3rd party package does not work for me...I need to read more on it.
+_Working on it._
 
+
+#TODO, update the stuff below
 ### Notes on Database Operations
 * Adding fields to DB
     * manually from DB's shell: `ALTER TABLE songs ADD COLUMN englishScore text;`
@@ -81,34 +66,6 @@ The final program will contain 5 major stages/areas:
         ```
     * then, move "combined.tar" to the project's root dir.
 
-## Speed tests
-Conclusions:
-1. Loading the tarball once in the beginning and running batches of searches is best.
-    * The bulk of the time is spent just loading the tarball.
-    * I think Python caches the tarball's contents because lookups performed after its been opened are fast.
-
-### Loading member list from tarball VS. from text file
-```python3
-# Setup
-import tarfile
-from timeit import timeit
-tar = tarfile.open(constants.UNCOMPRESSED_TESTING, "r") 
-
-# From tarball
-from_tar = timeit("tar.getmembers", number=10000, globals=globals())
-
-# From text file
-from_text = timeit("load_text", number=10000, globals=globals())
-
-# Results
-# Loading from a text file is faster by about 3x
->>> from_text
-0.0006425219999073306
->>> from_tar
-0.0022693800000297415
->>> (loaded_from_text / loaded_from_tar) * 100
-28.31266689134962
-```
 
 ## Profiling
 Using `cProfile`;  
@@ -139,30 +96,9 @@ Using `memory_profiler`;
     1. mark the function you want to profile with a decorator: `@profile`  
     2. run `python3 -m memory_profiler your_module.py`  
 
-
 General Process;  
     1. Start with cProfile and use the high level view to guide which functions to profile with `line_profiler` or other profilers  
         * run `python3 setup.py build_ext --inplace` to compile  
     2. run this within your code to profile a specific function;  
         * Example, to profile the `lyric_search` function and save in `filename`  
-
-## Errors
-```python
->>>(venv) cooper@Coopers-MacBook-Air tarFileLyricSearch % python3 setup.py build_ext --inplace
-...running build_ext
-...copying build/lib.macosx-10.9-x86_64-3.9/customEnglish/tarFileLyricSearch/search.cpython-39-darwin.so -> customEnglish/tarFileLyricSearch
-...error: could not create 'customEnglish/tarFileLyricSearch/search.cpython-39-darwin.so': No such file or directory
-
-# deleting __init__.py in the same directory solved the problem
-```
-
-### Testing
-Possible Search Patterns:  
-
-|Search Input|||||||||  
-|---|---|---|---|---|---|---|---|---|---|  
-|Artist  |X   |X   |X   |O   |X   |O   |O   |O
-|Song    |X   |X   |O   |X   |O   |X   |O   |O
-|Word    |X   |O   |X   |X   |O   |O   |X   |O
-
 

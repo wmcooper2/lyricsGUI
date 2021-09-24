@@ -103,26 +103,19 @@ class Search(tk.Frame):
         self.radiobutton_frame = ttk.Frame(self.options_frame)
         self.radiobutton_frame.grid(row=0, column=0, sticky=tk.E)
         self.artist_option_var = tk.StringVar()
-
-        # exact option
-        self.artist_option_exact = ttk.Radiobutton(self.radiobutton_frame, text="Exact", variable=self.artist_option_var, value=1, command=self.disable_fuzzy_search)
+        self.artist_option_exact = ttk.Radiobutton(self.radiobutton_frame, text="Exact", variable=self.artist_option_var, value=1)
         self.artist_option_exact.grid(row=0, column=0)
-        self.artist_option_exact.state(["selected"])
-
-        # fuzzy option
-        self.artist_option_fuzzy = ttk.Radiobutton(self.radiobutton_frame, text="Fuzzy", variable=self.artist_option_var, value=2, command=self.enable_fuzzy_search)
+        self.artist_option_fuzzy = ttk.Radiobutton(self.radiobutton_frame, text="Fuzzy", variable=self.artist_option_var, value=2)
         self.artist_option_fuzzy.grid(row=0, column=1)
 
         # max words between
         self.slider_var = tk.IntVar()
         self.slider_frame = ttk.Frame(self.options_frame)
         self.slider_frame.grid(row=1, column=0, sticky=tk.E)
-#         self.slider_label = ttk.Label(self.slider_frame, text=f"Up to {self.slider_var.get()} words between.")
         self.slider_label = ttk.Label(self.slider_frame, text=f"Up to {self.slider_var.get()} words between.")
         self.slider_label.grid(row=0, column=0)
         self.slider = ttk.Scale(self.slider_frame, from_=0, to=5, command=self.update_scale, variable=self.slider_var)
         self.slider.grid(row=0, column=1)
-        self.slider.state(["disabled"])
 
         # search/cancel button
         self.button = ttk.Button(self.root, text="Search", command=master.search)
@@ -138,23 +131,12 @@ class Search(tk.Frame):
         self.slider_var = value
         self.slider_label["text"] = f"Up to {int(float(value))} words between."
 
-    def disable_fuzzy_search(self):
-#         self.slider.set(state = "disabled")
-        self.slider.state(["disabled"])
-
-    def enable_fuzzy_search(self):
-        self.slider.state(["!disabled"])
-        print("enabled fuzzy")
-
-        
-
         
 class Results(tk.Frame):
     def __init__(self, master):
         super().__init__()
         self.root = ttk.LabelFrame(master, text="Results")
-        self.root.grid(row=2, column=0, sticky=tk.E+tk.W)
-        self.root.grid_columnconfigure(0, weight=1)  # allows expansion of columns and rows?
+        self.root.grid(row=2, column=0)
 
         # TODO:text results frame
 
@@ -163,7 +145,7 @@ class Results(tk.Frame):
 
         self.list_ = tk.Listbox(self.root, width=40, height=15, listvariable=self.list_items, selectmode=tk.SINGLE)
         self.list_.bind("<<ListboxSelect>>", master.handle_results_click)
-        self.list_.grid(row=0, column=0, sticky=tk.E+tk.W+tk.N+tk.S)
+        self.list_.grid(row=0, column=0)
         self.scrollbar = tk.Scrollbar(self.list_)
         self.scrollbar.config(command=self.list_.yview)
         self.list_.config(yscrollcommand=self.scrollbar.set)
@@ -174,14 +156,6 @@ class Results(tk.Frame):
 
 class App(tk.Tk):
     def __init__(self):
-        super().__init__()
-        self.notebook = ttk.Notebook(self)
-        self.notebook.pack(expand=True)
-        self.lyrics_tab = LyricsTab(self.notebook)
-        self.notebook.add(self.lyrics_tab, text="Lyrics")
-
-class LyricsTab(tk.Frame):
-    def __init__(self, master):
         super().__init__()
 #         self.stats = Stats(self)
 #         # display simple stats
@@ -200,13 +174,8 @@ class LyricsTab(tk.Frame):
         self.search.artist.focus()
 
         # Quit button
-        #TODO: add styling to fix the quit button?
-#         self.style = ttk.Style()
-#         self.style.configure("My.TButton", background="blue")
-#         self.quit_btn = ttk.Button(self, text="Quit", command=self.quit_gui, style="My.TButton")
         self.quit_btn = ttk.Button(self, text="Quit", command=self.quit_gui)
-        self.quit_btn.grid(row=3, column=0, columnspan=10, sticky=tk.E+tk.W)
-        self.quit_btn.grid_columnconfigure(0, weight=1)  # allows expansion of columns and rows?
+        self.quit_btn.grid(row=3, column=0, sticky=tk.E)
 
 
     def handle_results_click(self, option: str) -> None:
@@ -263,31 +232,26 @@ class LyricsTab(tk.Frame):
         a = self.search.artist.get().strip()
         s = self.search.song.get().strip()
         w = self.search.word.get().strip()
-        fuzzy = self.fuzzy
 
         #TODO: add fuzzy search option (exact is the default)
 
         #wsa: if that song by that artist exists, then highlight its lyrics
         if w and s and a:
-            #if fuzzy:
     #         artists = song_query(s)
             print("TODO: Need to add highlighting to lyrics.")
 
         #ws : load the song, then highlight its lyrics
         elif w and s and not a:
-            #if fuzzy:
             print("TODO: Need to add highlighting to lyrics.")
     #         artists = song_query(s)
 
         #w a: load all the songs by the artist, then for each song highlight the matching words
         elif w and not s and a:
-            #if fuzzy:
             print("TODO: Need to add highlighting to lyrics.")
     #         artists = song_query(s)
 
         # sa: show lyrics for that song from that artist
         elif not w and s and a:
-            #if fuzzy:
             result = artist_and_song(a, s)
             if result:
                 self.results.lyrics.delete("1.0", tk.END)
@@ -299,7 +263,6 @@ class LyricsTab(tk.Frame):
 
         #w  : search for all the lyrics that contain that word
         elif w and not s and not a:
-            #if fuzzy:
             search_in_progress = self.search.button["text"] != "Search"
             # if there is no search already running
             if search_in_progress:
@@ -317,7 +280,6 @@ class LyricsTab(tk.Frame):
 
         # s : load all songs with that title
         elif not w and s and not a:
-            #if fuzzy:
             songs = song_query(s)
             if len(songs) > 1:
                 amt = 0
@@ -334,7 +296,6 @@ class LyricsTab(tk.Frame):
 
         #  a: load all songs written by that artist
         elif not w and not s and a:
-            #if fuzzy:
             self.results.lyrics.delete("1.0", tk.END)
             songs = artist(a)
             self.results.list_.delete(0, tk.END)
@@ -436,8 +397,8 @@ if __name__ == "__main__":
     root_padding = {"padx": 5, "pady": 5}
 
     app = App()
-    app_width = 1000
-    app_height = 600
+    app_width = 900
+    app_height = 500
     app_window_size = f"{app_width}x{app_height}"
     app.geometry(app_window_size)
     app_color = "#%02x%02x%02x" % (235, 235, 235)
