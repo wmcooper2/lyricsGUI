@@ -97,8 +97,8 @@ class Search(tk.Frame):
         self.word_frame.grid(row=2, column=0)
         self.word_phrase_label = ttk.Label(self.word_frame, text="Word or phrase:", width=15)
         self.word_phrase_label.grid(row=0, column=0)
-        self.word = ttk.Entry(self.word_frame, width=40)
-        self.word.grid(row=0, column=1)
+        self.words = ttk.Entry(self.word_frame, width=40)
+        self.words.grid(row=0, column=1)
 
         # exact/fuzzy options
         self.radiobutton_frame = ttk.Frame(self.options_frame)
@@ -151,7 +151,8 @@ class Search(tk.Frame):
 class Results(tk.Frame):
     def __init__(self, master):
         super().__init__()
-        self.root = ttk.LabelFrame(master, text="Results")
+#         self.root = ttk.LabelFrame(master, text="Results")
+        self.root = ttk.LabelFrame(master)
         self.root.grid(row=2, column=0, sticky=tk.E+tk.W)
         self.root.grid_columnconfigure(0, weight=1)  # allows expansion of columns and rows?
 
@@ -160,15 +161,22 @@ class Results(tk.Frame):
         self.search_results = ["Search results appear here."]
         self.list_items = tk.StringVar(value=self.search_results)
 
-        self.list_ = tk.Listbox(self.root, width=40, height=15, listvariable=self.list_items, selectmode=tk.SINGLE)
+        # song/artist results
+        self.artist_song_results_frame = ttk.LabelFrame(self.root, text="Songs by Artist")
+        self.artist_song_results_frame.grid(row=0, column=0, sticky=tk.E+tk.W+tk.N+tk.S)
+        self.list_ = tk.Listbox(self.artist_song_results_frame, width=40, height=20, listvariable=self.list_items, selectmode=tk.SINGLE)
         self.list_.bind("<<ListboxSelect>>", master.handle_results_click)
         self.list_.grid(row=0, column=0, sticky=tk.E+tk.W+tk.N+tk.S)
         self.scrollbar = tk.Scrollbar(self.list_)
         self.scrollbar.config(command=self.list_.yview)
         self.list_.config(yscrollcommand=self.scrollbar.set)
 
-        self.lyrics = tk.scrolledtext.ScrolledText(self.root, height=20, width=60, wrap=tk.WORD)
-        self.lyrics.grid(row=0, column=1)
+        # lyrics results
+        self.lyrics_results_frame = ttk.LabelFrame(self.root, text="Lyrics")
+        self.lyrics_results_frame.grid(row=0, column=1, sticky=tk.E+tk.W+tk.N+tk.S)
+        self.lyrics = tk.scrolledtext.ScrolledText(self.lyrics_results_frame, height=20, width=60, wrap=tk.WORD)
+        self.lyrics.grid(row=0, column=0, sticky=tk.E+tk.W+tk.N+tk.S)
+        self.lyrics.tag_configure("highlight", background="yellow", foreground="black")
 
 
 class App(tk.Tk):
@@ -256,59 +264,110 @@ class LyricsTab(tk.Frame):
             Artist  X   X   X   O   X   O   O   O
             Song    X   X   O   X   O   X   O   O
             Word    X   O   X   X   O   O   X   O
+
+        Personal note:
+        Completed?
+            Fuzzy   O       O   O           O   O
         """
 
         # clear the listbox's contents
         self.results.list_.delete(0, tk.END)
+        self.results.lyrics.delete("1.0", tk.END)
 
+        # convienence vars
         a = self.search.artist.get().strip()
         s = self.search.song.get().strip()
-        w = self.search.word.get().strip()
+        w = self.search.words.get().strip()
+        fuzzy = self.search.fuzzy
+        if fuzzy:
+            #get value of the word gap scale
+            word_gap = self.search.slider.get()
 
-        #TODO: add fuzzy search option (exact is the default)
-        #TODO: Need to add highlighting to lyrics.
+        artist_results = None
+        song_results = None
+        lyrics_results = None
+
+        #TODO: finish fuzzy search option for word
+        #TODO: Need to add highlighting to lyrics... having some trouble here
 
         #wsa: if that song by that artist exists, then highlight its lyrics
         if w and s and a:
-            if self.search.fuzzy:
-                #find all the artists that are similar
-                artists = fuzzy_song_query(s)
-                #TODO: ...then find any similar songs
-                #TODO: ...and then tag the lryics
+            lyrics = None
+            words = w.split(" ")
+            box = self.results.lyrics
+            if fuzzy:
+
+                lyrics = fuzzy_artist_and_song(a, s)
+
+                #Clear all prior tags
+                for tag in box.tag_names():
+                    box.tag_delete(tag)
+
+#                 if "highlight" in box.tag_names():
+#                         box.tag_delete("highlight")
+
+                #make into method
+                #TODO: add highlighting
+                patterns = [f"\\b{word}\\b" for word in words]
+                print("patterns:", patterns)
+                for pattern in patterns:
+                    match = re.search(pattern, lyrics)
+                    print("match:", match)
+                    start = f"1.{match.start()}"
+                    end = f"1.{match.end()}"
+                    print("start/end:", start, end)
+                    box.tag_add("highlight", start, end)
+                    self.show_lyrics(lyrics)
+
+            else:
+                #TODO: non fuzzy search
+                lyrics = artist_and_song(a, s)
+                if lyrics:
+                    match = re.search(w, lyrics)
+#                     print("non-fuzzy match", match)
+
+                self.show_lyrics(lyrics)
 
         #ws : load the song, then highlight its lyrics
         elif w and s and not a:
-            if self.search.fuzzy:
+            if fuzzy:
                 #find all songs that are similar
                 artists = fuzzy_song_query(s)
                 #TODO: ...then tag the lyrics
 
+        #TODO: this one might be a little more involved...
         #w a: load all the songs by the artist, then for each song highlight the matching words
         elif w and not s and a:
-            if self.search.fuzzy:
+            if fuzzy:
                 #find all artists that are similar
                 artists = fuzzy_song_query(s)
-                #TODO: ...then tag the lyrics
+
+                #just load all the songs by the artist.
+                #when a song is clicked, grab the lyrics from the DB and add tags on the spot
+
+            else:
+                artists = song_query(s)
+                #just load all the songs by the artist.
+                #when a song is clicked, grab the lyrics from the DB and add tags on the spot
 
         # sa: show lyrics for that song from that artist
         elif not w and s and a:
-            if self.search.fuzzy:
-                result = fuzzy_artist_and_song(a, s)
+            lyrics = None
+            if fuzzy:
+                lyrics = fuzzy_artist_and_song(a, s)
             else:
-                result = artist_and_song(a, s)
+                lyrics = artist_and_song(a, s)
 
-            if result:
-                self.results.lyrics.delete("1.0", tk.END)
-                self.results.lyrics.insert("1.0", result)
+            if lyrics:
+                self.show_songs([(a, s)])
             else:
-                self.results.lyrics.delete("1.0", tk.END)
-                self.results.list_.delete(0, tk.END)
-                self.results.list_.insert(0, "No matching results.")
+                self.show_songs([])
+                self.show_lyrics(lyrics)
 
         #w  : search for all the lyrics that contain that word
         elif w and not s and not a:
             #TODO: implement a word gap fuzzy lookup
-#             if self.search.fuzzy:
+#             if fuzzy:
             search_in_progress = self.search.button["text"] != "Search"
             # if there is no search already running
             if search_in_progress:
@@ -326,47 +385,60 @@ class LyricsTab(tk.Frame):
 
         # s : load all songs with that title
         elif not w and s and not a:
-            if self.search.fuzzy:
+            if fuzzy:
                 songs = fuzzy_song_query(s)
             else:
                 songs = song_query(s)
-
-            if len(songs) > 1:
-                amt = 0
-                for index, song in enumerate(sorted(songs, reverse=True)):
-                    self.results.list_.insert(0, f'"{song[1]}" by {song[0]}')
-                    amt = index
-            elif len(songs) == 1:
-                for song in songs:
-                    self.results.list_.insert(0, f'"{song[1]}" by {song[0]}')
-            else:
-                self.results.lyrics.delete("1.0", tk.END)
-                self.results.list_.delete(0, tk.END)
-                self.results.list_.insert(0, "No matching results.")
+            self.show_songs(songs)
 
         #  a: load all songs written by that artist
         elif not w and not s and a:
-            if self.search.fuzzy:
+            if fuzzy:
                 songs = fuzzy_artist(a)
             else:
-                self.results.lyrics.delete("1.0", tk.END)
-                songs = artist(a)
-
-            if songs:
-                self.results.list_.delete(0, tk.END)
-                amt = 0
-                for index, song in enumerate(sorted(songs, reverse=True)):
-                    self.results.list_.insert(0, song)
-                    amt = index
-            else:
-                self.results.list_.delete(0, tk.END)
-                self.results.list_.insert(0, "No matches found.")
-
-
+#                 self.results.lyrics.delete("1.0", tk.END)
+                songs = artist2(a)
+            print("songs:", songs)
+            self.show_songs(songs)
 
         #none, no input was given
         else:
             input_something_message()
+
+    def clear_results(self) -> None:
+        """Delete contents of artist/song listbox and lyrics text box."""
+        self.results.list_.delete(0, tk.END)
+        self.results.lyrics.delete("1.0", tk.END)
+
+
+    def show_songs(self, data) -> None:
+        """Load the song/artist results into the list box."""
+        box = self.results.list_
+        self.clear_results()
+        if len(data) > 1:
+            for index, song in enumerate(sorted(data, reverse=True)):
+                self.results.list_.insert(0, f'"{song[1]}" by {song[0]}')
+        elif len(data) == 1:
+            self.results.list_.delete(0, tk.END)
+#             print("data:", data)
+            song, artist = data[0][1], data[0][0]
+            self.results.list_.insert(0, f'"{song}" by {artist}')
+            lyrics = artist_and_song(artist, song)
+            self.show_lyrics(lyrics)
+        else:
+            box.insert(0, "No matching results.")
+
+
+    def show_lyrics(self, data) -> None:
+        """Load the lyrics results into the text box."""
+        box = self.results.lyrics
+        if data:
+            box.delete("1.0", tk.END)
+            box.insert("1.0", data)
+        else:
+            box.delete("1.0", tk.END)
+            box.delete("1.0", tk.END)
+            box.insert("1.0", "No matching results.")
 
 
     def thread_manager(self, limit: int, regex: re.Pattern) -> None:
@@ -460,7 +532,7 @@ if __name__ == "__main__":
 
     app = App()
     app_width = 1000
-    app_height = 600
+    app_height = 700
     app_window_size = f"{app_width}x{app_height}"
     app.geometry(app_window_size)
     app_color = "#%02x%02x%02x" % (235, 235, 235)

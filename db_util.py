@@ -17,6 +17,16 @@ def artist(name: str) -> list:
     return [r[0] for r in results]
 
 
+def artist2(name: str) -> list:
+    cur, con = connect()
+    cur.execute('SELECT artist,song FROM demo WHERE artist=?', (name,))
+    results = cur.fetchall()
+    close_connection(cur, con)
+    return results
+
+
+
+
 def artists() -> list:
     cur, con = connect()
     cur.execute('SELECT DISTINCT artist FROM demo')
@@ -46,10 +56,10 @@ def artist_and_song(artist: str, song: str) -> str:
 
 
 #TODO, implement fuzzy search outside of db
-def fuzzy_artist(name: str) -> list:
+def fuzzy_artist(artist: str) -> list:
+    """Fuzzy search of 'artist'. Returns songs written by 'artist'."""
     cur, con = connect()
-    lower = name.lower()
-    sql_statement = f"SELECT song FROM demo WHERE LOWER(artist)='{lower}'"
+    sql_statement = f"SELECT song FROM demo WHERE LOWER(artist)='{artists.lower()}'"
     cur.execute(sql_statement)
     results = cur.fetchall()
     close_connection(cur, con)
@@ -57,7 +67,7 @@ def fuzzy_artist(name: str) -> list:
 
 
 def fuzzy_artist_and_song(artist: str, song: str) -> str:
-    """Returns the lyrics of a song by a specific artist."""
+    """Fuzzy search for a 'song' by an 'artist'. Returns the lyrics."""
     cur, con = connect()
     sql_statement = f"SELECT lyrics FROM demo WHERE LOWER(artist)='{artist.lower()}' AND LOWER(song)='{song.lower()}'"
     print("sql: ", sql_statement)
@@ -71,9 +81,10 @@ def fuzzy_artist_and_song(artist: str, song: str) -> str:
         return []
 
 
-def fuzzy_song_query(name: str) -> list:
+def fuzzy_song_query(song: str) -> list:
+    """Fuzzy search for 'song'. Returns list of artists and the song."""
     cur, con = connect()
-    sql_statement = f"SELECT artist,song FROM demo WHERE LOWER(song)='{name.lower()}'"
+    sql_statement = f"SELECT artist,song FROM demo WHERE LOWER(song)='{song.lower()}'"
     cur.execute(sql_statement)
     results = cur.fetchall()
     close_connection(cur, con)
