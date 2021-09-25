@@ -8,7 +8,7 @@ def connect():
     cur = con.cursor()
     return cur, con
 
-
+#TODO: delete in favor of artist2()?
 def artist(name: str) -> list:
     cur, con = connect()
     cur.execute('SELECT song FROM demo WHERE artist=?', (name,))
@@ -23,8 +23,6 @@ def artist2(name: str) -> list:
     results = cur.fetchall()
     close_connection(cur, con)
     return results
-
-
 
 
 def artists() -> list:
@@ -55,15 +53,24 @@ def artist_and_song(artist: str, song: str) -> str:
         return []
 
 
+def index_search(index: int, step: int) -> list:
+    """Search for records starting at 'index'."""
+    cur, con = connect()
+    cur.execute('SELECT * FROM demo WHERE id>=? AND id<=?', (index, index+100))
+    records = cur.fetchall()
+    close_connection(cur, con)
+    return records
+
+
 #TODO, implement fuzzy search outside of db
 def fuzzy_artist(artist: str) -> list:
     """Fuzzy search of 'artist'. Returns songs written by 'artist'."""
     cur, con = connect()
-    sql_statement = f"SELECT song FROM demo WHERE LOWER(artist)='{artists.lower()}'"
+    sql_statement = f"SELECT artist,song FROM demo WHERE LOWER(artist)='{artist.lower()}'"
     cur.execute(sql_statement)
     results = cur.fetchall()
     close_connection(cur, con)
-    return [r[0] for r in results]
+    return results
 
 
 def fuzzy_artist_and_song(artist: str, song: str) -> str:

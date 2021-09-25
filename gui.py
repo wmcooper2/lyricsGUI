@@ -39,7 +39,6 @@ def long_search_message() -> bool:
     return message
 
 
-
 class Stats(tk.Frame):
     def __init__(self, master):
         super().__init__()
@@ -62,8 +61,8 @@ class Search(tk.Frame):
         super().__init__()
         
         self.fuzzy = False
-        self.songs = record_count()
-        self.artists = artist_count()
+        self.song_count = record_count()
+        self.artist_count = artist_count()
 
         self.root = ttk.LabelFrame(master, text="Search")
         self.root.grid(row=1, column=0)
@@ -118,8 +117,7 @@ class Search(tk.Frame):
         self.slider_var = tk.IntVar()
         self.slider_frame = ttk.Frame(self.options_frame)
         self.slider_frame.grid(row=1, column=0, sticky=tk.E)
-#         self.slider_label = ttk.Label(self.slider_frame, text=f"Up to {self.slider_var.get()} words between.")
-        self.slider_label = ttk.Label(self.slider_frame, text=f"Up to {self.slider_var.get()} words between.")
+        self.slider_label = ttk.Label(self.slider_frame, text=f"Word gap: {self.slider_var.get()}")
         self.slider_label.grid(row=0, column=0)
         self.slider = ttk.Scale(self.slider_frame, from_=0, to=5, command=self.update_scale, variable=self.slider_var)
         self.slider.grid(row=0, column=1)
@@ -131,13 +129,14 @@ class Search(tk.Frame):
 
         self.progress = tk.IntVar()
         self.progress_label = ttk.Label(self.root, text="Searching for: Nothing yet...")
-        self.progress_label.grid(row=1, column=0, sticky=tk.W)
-        self.progress_bar = ttk.Progressbar(self.root, length=800, maximum=self.songs, mode="determinate", variable=self.progress)
+        self.progress_label.configure(font="Helvetica 12 italic")
+        self.progress_label.grid(row=1, column=0, sticky=tk.W, padx=10)
+        self.progress_bar = ttk.Progressbar(self.root, length=800, maximum=self.song_count, mode="determinate", variable=self.progress)
         self.progress_bar.grid(row=2, column=0, columnspan=9)
 
     def update_scale(self, value):
         self.slider_var = value
-        self.slider_label["text"] = f"Up to {int(float(value))} words between."
+        self.slider_label["text"] = f"Word gap: {int(float(value))}"
 
     def disable_fuzzy_search(self):
         self.fuzzy = False
@@ -164,9 +163,9 @@ class Results(tk.Frame):
         # song/artist results
         self.artist_song_results_frame = ttk.LabelFrame(self.root, text="Songs by Artist")
         self.artist_song_results_frame.grid(row=0, column=0, sticky=tk.E+tk.W+tk.N+tk.S)
-        self.list_ = tk.Listbox(self.artist_song_results_frame, width=40, height=20, listvariable=self.list_items, selectmode=tk.SINGLE)
+        self.list_ = tk.Listbox(self.artist_song_results_frame, width=45, height=20, listvariable=self.list_items, selectmode=tk.SINGLE)
         self.list_.bind("<<ListboxSelect>>", master.handle_results_click)
-        self.list_.grid(row=0, column=0, sticky=tk.E+tk.W+tk.N+tk.S)
+        self.list_.grid(row=0, column=0, sticky=tk.E+tk.W+tk.N+tk.S, padx=5, pady=5)
         self.scrollbar = tk.Scrollbar(self.list_)
         self.scrollbar.config(command=self.list_.yview)
         self.list_.config(yscrollcommand=self.scrollbar.set)
@@ -174,8 +173,8 @@ class Results(tk.Frame):
         # lyrics results
         self.lyrics_results_frame = ttk.LabelFrame(self.root, text="Lyrics")
         self.lyrics_results_frame.grid(row=0, column=1, sticky=tk.E+tk.W+tk.N+tk.S)
-        self.lyrics = tk.scrolledtext.ScrolledText(self.lyrics_results_frame, height=20, width=60, wrap=tk.WORD)
-        self.lyrics.grid(row=0, column=0, sticky=tk.E+tk.W+tk.N+tk.S)
+        self.lyrics = tk.scrolledtext.ScrolledText(self.lyrics_results_frame, height=25, width=60, wrap=tk.WORD)
+        self.lyrics.grid(row=0, column=0, sticky=tk.E+tk.W+tk.N+tk.S, padx=5, pady=5)
         self.lyrics.tag_configure("highlight", background="yellow", foreground="black")
 
 
@@ -183,9 +182,15 @@ class App(tk.Tk):
     def __init__(self):
         super().__init__()
         self.notebook = ttk.Notebook(self)
-        self.notebook.pack(expand=True)
+        self.notebook.pack(side=tk.LEFT, expand=True)
         self.lyrics_tab = LyricsTab(self.notebook)
+        self.youtube_tab = YouTubeTab(self.notebook)
         self.notebook.add(self.lyrics_tab, text="Lyrics")
+        self.notebook.add(self.youtube_tab, text="YouTube")
+
+class YouTubeTab(tk.Frame):
+    def __init__(self, master):
+        super().__init__()
 
 class LyricsTab(tk.Frame):
     def __init__(self, master):
@@ -193,7 +198,7 @@ class LyricsTab(tk.Frame):
 #         self.stats = Stats(self)
 #         # display simple stats
 #         self.stats.records_amt["text"] = self.records
-#         self.stats.artists_amt["text"] = self.artists
+#         self.stats.artists_amt["text"] = self.artist_count
 
         #TODO: thread to load stats
 
@@ -202,6 +207,7 @@ class LyricsTab(tk.Frame):
 
         self.regex_results = []
         self.index = 0
+        self.step = 100
 #         self.fuzzy = False
 
 
@@ -220,41 +226,50 @@ class LyricsTab(tk.Frame):
 
     def handle_results_click(self, option: str) -> None:
         """Load the selected song's lyrics into the lyrics box."""
-        index = self.results.list_.curselection()
         selection = None
+        index = self.results.list_.curselection()
         try:
             selection = option.widget.get(index)
         except tk.TclError:
+            #TODO:?
             pass
 
-        artist = self.search.artist.get().strip()
-        song = self.search.song.get().strip()
-        result = None
-        
+        song = None
+        artist = None
         if selection:
-            if artist and not song:
-                result = artist_and_song(artist, selection)
-
-            elif song and not artist:
-                result = artist_and_song(selection, song)
-            
-            if result:
-            #update the lyrics box
-                self.results.lyrics.delete("1.0", tk.END)
-                self.results.lyrics.insert("1.0", result)
+            song_match = re.match('\".*?\"', selection)
+            song = song_match.group(0)
+            song = selection[1:song_match.end()-1]
+            # drop string through quotes
+            by = " by "
+            artist = selection[song_match.end()+len(by):]
+        lyrics = artist_and_song(artist, song)
+        self.show_lyrics(lyrics)
 
 
-    def regex_search(self, regex, index: int) -> None: 
-        #TODO, move this to db_util
-        cur, con = connect()
-        cur.execute('SELECT * FROM demo WHERE id>=? AND id<=?', (index, index+100))
-        records = cur.fetchall()
+    def highlight_lyrics(self, lyrics: str, words: list) -> None:
+        """Highlight the 'words'."""
+        pass
+        #TODO: no highlighting is happening...
+        if lyrics:
+            box = self.results.lyrics
+            for tag in box.tag_names():
+                box.tag_delete(tag)
+            patterns = [f"\\b{word}\\b" for word in words]
+            for pattern in patterns:
+                match = re.search(pattern, lyrics)
+                start = f"1.{match.start()}"
+                end = f"1.{match.end()}"
+                box.tag_add("highlight", start, end)
 
+
+    def regex_search(self, pattern) -> None: 
+        """Perform a regex search for 'pattern'."""
+        records = index_search(self.index, self.step)
         for record in records:
-            res = regex.search(record[3])
-            if res:
+            match = pattern.search(record[3])
+            if match:
                 self.regex_results.append((record[0], record[1], record[2]))
-        close_connection(cur, con)
 
 
     def search(self) -> None:
@@ -268,6 +283,7 @@ class LyricsTab(tk.Frame):
         Personal note:
         Completed?
             Fuzzy   O       O   O           O   O
+            Exact   O   O   O   O           O
         """
 
         # clear the listbox's contents
@@ -294,39 +310,16 @@ class LyricsTab(tk.Frame):
         if w and s and a:
             lyrics = None
             words = w.split(" ")
-            box = self.results.lyrics
             if fuzzy:
-
                 lyrics = fuzzy_artist_and_song(a, s)
-
-                #Clear all prior tags
-                for tag in box.tag_names():
-                    box.tag_delete(tag)
-
-#                 if "highlight" in box.tag_names():
-#                         box.tag_delete("highlight")
-
-                #make into method
-                #TODO: add highlighting
-                patterns = [f"\\b{word}\\b" for word in words]
-                print("patterns:", patterns)
-                for pattern in patterns:
-                    match = re.search(pattern, lyrics)
-                    print("match:", match)
-                    start = f"1.{match.start()}"
-                    end = f"1.{match.end()}"
-                    print("start/end:", start, end)
-                    box.tag_add("highlight", start, end)
-                    self.show_lyrics(lyrics)
-
             else:
-                #TODO: non fuzzy search
                 lyrics = artist_and_song(a, s)
-                if lyrics:
-                    match = re.search(w, lyrics)
-#                     print("non-fuzzy match", match)
 
-                self.show_lyrics(lyrics)
+            if lyrics:
+                match = re.search(w, lyrics)
+                self.highlight_lyrics(lyrics, words)
+            self.show_lyrics(lyrics)
+            self.show_songs([(a, s)])
 
         #ws : load the song, then highlight its lyrics
         elif w and s and not a:
@@ -368,6 +361,7 @@ class LyricsTab(tk.Frame):
         elif w and not s and not a:
             #TODO: implement a word gap fuzzy lookup
 #             if fuzzy:
+            #TODO: decide on whether or not to give user the cancel ability and how to implement
             search_in_progress = self.search.button["text"] != "Search"
             # if there is no search already running
             if search_in_progress:
@@ -376,12 +370,12 @@ class LyricsTab(tk.Frame):
                     # then run a search
                     message = long_search_message()
                     if message:
-                        self.word_search(w, self.songs)
+                        self.word_search(w, self.song_count)
             else:
                 # then run a search
                 message = long_search_message()
                 if message:
-                    self.word_search(w, self.search.songs)
+                    self.word_search(w, self.search.song_count)
 
         # s : load all songs with that title
         elif not w and s and not a:
@@ -396,14 +390,13 @@ class LyricsTab(tk.Frame):
             if fuzzy:
                 songs = fuzzy_artist(a)
             else:
-#                 self.results.lyrics.delete("1.0", tk.END)
                 songs = artist2(a)
-            print("songs:", songs)
             self.show_songs(songs)
 
         #none, no input was given
         else:
             input_something_message()
+
 
     def clear_results(self) -> None:
         """Delete contents of artist/song listbox and lyrics text box."""
@@ -416,12 +409,12 @@ class LyricsTab(tk.Frame):
         box = self.results.list_
         self.clear_results()
         if len(data) > 1:
-            for index, song in enumerate(sorted(data, reverse=True)):
-                self.results.list_.insert(0, f'"{song[1]}" by {song[0]}')
+            for index, record in enumerate(sorted(data, reverse=True)):
+                song, artist = record[1].title(), record[0].title()
+                self.results.list_.insert(0, f'"{song}" by {artist}')
         elif len(data) == 1:
             self.results.list_.delete(0, tk.END)
-#             print("data:", data)
-            song, artist = data[0][1], data[0][0]
+            song, artist = data[0][1].title(), data[0][0].title()
             self.results.list_.insert(0, f'"{song}" by {artist}')
             lyrics = artist_and_song(artist, song)
             self.show_lyrics(lyrics)
@@ -441,35 +434,39 @@ class LyricsTab(tk.Frame):
             box.insert("1.0", "No matching results.")
 
 
-    def thread_manager(self, limit: int, regex: re.Pattern) -> None:
-        step = 100
+    def thread_manager(self, limit: int, pattern: str) -> None:
+        """Main search thread."""
+        regex = re.compile(pattern)
+        self.search.progress_label["text"] = f"Searching for: '{pattern}'..."
+        self.clear_results()
         start_time = time.time()
-
-        # ensure cancel_flag is false
         self.cancel_flag = False
+        self.regex_results = []
 
-        #TODO set search button to cancel and toggle its functionality
+        # disable the word entry
+        self.search.words.state(["disabled"])
 
+        # disable the scale
+        self.search.slider.state(["disabled"])
+
+        #TODO set search button to cancel and toggle its functionality?
         while self.index < limit and not self.cancel_flag:
-            thread = threading.Thread(target=self.regex_search, args=(regex, self.index))
+            thread = threading.Thread(target=self.regex_search, args=(regex,))
             thread.start()
 
             # wait for the thread to finish
             while thread.is_alive():
-#             while process.is_alive():
                 continue
 
             thread.join()  # end the thread, (timeout=5) ? 
-#             process.join()  # end the thread, (timeout=5) ? 
-            self.index += step
+            self.index += self.step
 
-            if self.search.progress.get() >= self.search.songs:
+            if self.search.progress.get() >= self.search.song_count:
                 break
 
-            self.search.progress_bar.step(step)
+            self.search.progress_bar.step(self.step)
 
         #one last update, then exit
-    #     progress_bar.step(step)
         #TODO:reset progress bar color
         self.search.progress_bar.stop()
         self.search.progress_bar["value"] = 0
@@ -477,37 +474,44 @@ class LyricsTab(tk.Frame):
         # reset cancel_flag
         self.cancel_flag = False
 
+        result_count = len(self.regex_results)
         # let the user know the search is finished
-        self.search.progress_label["text"] = f"Search complete. {len(self.regex_results)} matches found."
+        self.search.progress_label["text"] = f"Search complete. {result_count} matches found."
         
         # reset the index counter
         self.index = 0
 
-        #TODO: show message that the search is finished and can be loaded into the current window, and saved into a file
-        save = messagebox.askyesno(title="Save to File?", message="Would you like to save the results to a CSV file? You can reload the results into other programs like Excel.")
+        # enable the word entry
+        self.search.words.state(["!disabled"])
+
+        # enable the scale
+        self.search.slider.state(["!disabled"])
+
+
+        save = messagebox.askyesno(title="Save to File?", message=f"Search for {pattern} is complete. Would you like to save the results to a CSV file? You can reload the results into other programs like Excel.\n\nThe word entry field and word gap option will be disabled until the search is completed.")
         if save:
             #show save dialog
             save_file = filedialog.asksaveasfilename()
-            print("Saving to:", save_file)
             if save_file:
                 with open(save_file, "w+") as f:
                     writer = csv.writer(f, delimiter="|")
                     writer.writerows(self.regex_results)
-            print("Saved")
         end_time = time.time()
         print("Time taken:", (end_time - start_time) / 60, " minutes")
 
+        #TODO: show message that the search is finished and can be loaded into the current window, and saved into a file
+        if result_count > 100:
+            view_now = messagebox.askyesno(title="Save to File?", message=f"There are {result_count} results. Do you want to view all of them now?")
+            if view_now:
+                artist_songs = [(record[1], record[2])for record in self.regex_results]
+                self.show_songs(artist_songs)
+
 
     def word_search(self, pattern: str, limit: int):
-        regex = re.compile(pattern)
-        self.search.progress_label["text"] = f"Searching for: {pattern}"
-
-        # clear lyrics text 
-        self.results.lyrics.delete("1.0", tk.END)
-
+        """Search for 'pattern' in all lyrics."""
         try:
             # create main thread to manage the other threads
-            manager_thread = threading.Thread(target=self.thread_manager, args=(limit, regex))
+            manager_thread = threading.Thread(target=self.thread_manager, args=(limit, pattern))
             manager_thread.start()
         except RuntimeError:
             pass
