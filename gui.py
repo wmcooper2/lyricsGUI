@@ -61,6 +61,7 @@ class Search(tk.Frame):
     def __init__(self, master):
         super().__init__()
         
+        self.fuzzy = False
         self.songs = record_count()
         self.artists = artist_count()
 
@@ -145,10 +146,8 @@ class Search(tk.Frame):
     def enable_fuzzy_search(self):
         self.fuzzy = True
         self.slider.state(["!disabled"])
-
         
 
-        
 class Results(tk.Frame):
     def __init__(self, master):
         super().__init__()
@@ -195,7 +194,7 @@ class LyricsTab(tk.Frame):
 
         self.regex_results = []
         self.index = 0
-        self.fuzzy = False
+#         self.fuzzy = False
 
 
         # conveniences
@@ -267,40 +266,49 @@ class LyricsTab(tk.Frame):
         w = self.search.word.get().strip()
 
         #TODO: add fuzzy search option (exact is the default)
+        #TODO: Need to add highlighting to lyrics.
 
         #wsa: if that song by that artist exists, then highlight its lyrics
         if w and s and a:
-#             if self.fuzzy:
-    #         artists = song_query(s)
-            print("TODO: Need to add highlighting to lyrics.")
+            if self.search.fuzzy:
+                #find all the artists that are similar
+                artists = fuzzy_song_query(s)
+                #TODO: ...then find any similar songs
+                #TODO: ...and then tag the lryics
 
         #ws : load the song, then highlight its lyrics
         elif w and s and not a:
-            #if fuzzy:
-            print("TODO: Need to add highlighting to lyrics.")
-    #         artists = song_query(s)
+            if self.search.fuzzy:
+                #find all songs that are similar
+                artists = fuzzy_song_query(s)
+                #TODO: ...then tag the lyrics
 
         #w a: load all the songs by the artist, then for each song highlight the matching words
         elif w and not s and a:
-            #if fuzzy:
-            print("TODO: Need to add highlighting to lyrics.")
-    #         artists = song_query(s)
+            if self.search.fuzzy:
+                #find all artists that are similar
+                artists = fuzzy_song_query(s)
+                #TODO: ...then tag the lyrics
 
         # sa: show lyrics for that song from that artist
         elif not w and s and a:
-            #if fuzzy:
-            result = artist_and_song(a, s)
+            if self.search.fuzzy:
+                result = fuzzy_artist_and_song(a, s)
+            else:
+                result = artist_and_song(a, s)
+
             if result:
                 self.results.lyrics.delete("1.0", tk.END)
                 self.results.lyrics.insert("1.0", result)
             else:
                 self.results.lyrics.delete("1.0", tk.END)
-                self.results.list_results.delete(0, tk.END)
-                self.results.list_results.insert(0, "No matching results.")
+                self.results.list_.delete(0, tk.END)
+                self.results.list_.insert(0, "No matching results.")
 
         #w  : search for all the lyrics that contain that word
         elif w and not s and not a:
-            #if fuzzy:
+            #TODO: implement a word gap fuzzy lookup
+#             if self.search.fuzzy:
             search_in_progress = self.search.button["text"] != "Search"
             # if there is no search already running
             if search_in_progress:
@@ -318,8 +326,11 @@ class LyricsTab(tk.Frame):
 
         # s : load all songs with that title
         elif not w and s and not a:
-            #if fuzzy:
-            songs = song_query(s)
+            if self.search.fuzzy:
+                songs = fuzzy_song_query(s)
+            else:
+                songs = song_query(s)
+
             if len(songs) > 1:
                 amt = 0
                 for index, song in enumerate(sorted(songs, reverse=True)):
@@ -335,21 +346,11 @@ class LyricsTab(tk.Frame):
 
         #  a: load all songs written by that artist
         elif not w and not s and a:
-            if self.fuzzy:
+            if self.search.fuzzy:
                 songs = fuzzy_artist(a)
-#                 self.results.list_.delete(0, tk.END)
-#                 amt = 0
-#                 for index, song in enumerate(sorted(songs, reverse=True)):
-#                     self.results.list_.insert(0, song)
-#                     amt = index
             else:
                 self.results.lyrics.delete("1.0", tk.END)
                 songs = artist(a)
-#                 self.results.list_.delete(0, tk.END)
-#                 amt = 0
-#                 for index, song in enumerate(sorted(songs, reverse=True)):
-#                     self.results.list_.insert(0, song)
-#                     amt = index
 
             if songs:
                 self.results.list_.delete(0, tk.END)
@@ -383,9 +384,11 @@ class LyricsTab(tk.Frame):
 
             # wait for the thread to finish
             while thread.is_alive():
+#             while process.is_alive():
                 continue
 
             thread.join()  # end the thread, (timeout=5) ? 
+#             process.join()  # end the thread, (timeout=5) ? 
             self.index += step
 
             if self.search.progress.get() >= self.search.songs:
@@ -431,7 +434,7 @@ class LyricsTab(tk.Frame):
         self.results.lyrics.delete("1.0", tk.END)
 
         try:
-            #create main thread to manage the other threads
+            # create main thread to manage the other threads
             manager_thread = threading.Thread(target=self.thread_manager, args=(limit, regex))
             manager_thread.start()
         except RuntimeError:
