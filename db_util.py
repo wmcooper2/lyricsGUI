@@ -67,6 +67,17 @@ def index_search(index: int, step: int) -> list:
     return records
 
 
+def all_artists_and_songs() -> list:
+    """Get all records' artist and song fields."""
+    cur, con = connect_to("Databases/lyrics.db")
+    cur.execute('SELECT * FROM songs;')
+    records = cur.fetchall()
+    close_connection(cur, con)
+    return records
+
+
+
+
 #TODO, implement fuzzy search outside of db
 def fuzzy_artist(artist: str) -> list:
     """Fuzzy search of 'artist'. Returns songs written by 'artist'."""
@@ -108,6 +119,16 @@ def record_check(artist: str, song: str, cur: sqlite3.Cursor) -> bool:
 #     cur, con = connect()
     cur.execute('SELECT artist FROM songs WHERE artist=? AND song=?', (artist, song))
     results = cur.fetchall()
+#     close_connection(cur, con)
+    return bool(results)
+
+
+def mp_record_check(artist: str, song: str) -> bool:
+    """Checks if a record exists in the database """
+    cur, con = connect_to("Databases/lyrics.db")
+    cur.execute('SELECT artist FROM songs WHERE artist=? AND song=?', (artist, song))
+    results = cur.fetchall()
+    close_connection(cur, con)
     return bool(results)
 
 
