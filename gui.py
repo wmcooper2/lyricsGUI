@@ -157,7 +157,7 @@ class Results(tk.Frame):
 
         # TODO:text results frame
 
-        self.search_results = ["Search results appear here."]
+        self.search_results = [""]
         self.list_items = tk.StringVar(value=self.search_results)
 
         # song/artist results
