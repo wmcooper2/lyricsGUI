@@ -8,6 +8,11 @@ def connect():
     cur = con.cursor()
     return cur, con
 
+def connect_to(db_name: str):
+    con = sqlite3.connect(db_name)
+    cur = con.cursor()
+    return cur, con
+
 #TODO: delete in favor of artist2()?
 def artist(name: str) -> list:
     cur, con = connect()
@@ -96,6 +101,14 @@ def fuzzy_song_query(song: str) -> list:
     results = cur.fetchall()
     close_connection(cur, con)
     return results
+
+
+def record_check(artist: str, song: str, cur: sqlite3.Cursor) -> bool:
+    """Checks if a record exists in the database """
+#     cur, con = connect()
+    cur.execute('SELECT artist FROM songs WHERE artist=? AND song=?', (artist, song))
+    results = cur.fetchall()
+    return bool(results)
 
 
 def record_count() -> int:

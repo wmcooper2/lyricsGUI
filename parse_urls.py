@@ -1,17 +1,23 @@
 """This module is meant to improve the parsing of artists and songs from the urls in order to fix the 'missing ending "t"' problem with earlier attempts."""
+
+# std lib
 from collections import namedtuple
 import re
+import sqlite3
 import sys
 import time
 import urllib.parse as parser
 
+# custom
+from db_util import connect_to, close_connection, record_check
 
 Record = namedtuple("Record", ["artist", "song", "url"])
 
-def timeit(function):
-    def wrapper():
+
+def timing(function):
+    def wrapper(*args, **kwargs):
         start = time.time()
-        function()
+        function(*args, **kwargs)
         end = time.time()
         print("time taken:", end - start)
     return wrapper
@@ -29,7 +35,7 @@ def artist_song_from_url(url: str) -> Record:
     return Record(artist,song,url)
 
 
-@timeit
+@timing
 def record_creation_errors():
     errors = []
     error_count = 0
@@ -46,10 +52,42 @@ def record_creation_errors():
         with open(file_, "w+") as f:
             f.writelines(errors)
 
+@timing
+def check_db_for_errors(urls: list) -> None:
+    cur, con = connect_to("Databases/lyrics.db")
+    errors = []
+    error_count = 0
+#     breakpoint()
+    for index, url in enumerate(urls):
+        record = artist_song_from_url(url)
+#         print(f"Progress: {index},    Errors: {error_count}", end="\r")
+        try:
+            result = record_check(record.artist, record.song, cur)
+            print(result, url)
+            if not result:
+                error_count += 1
+                errors.append(url)
+        except KeyboardInterrupt:
+            quit()
+        except :
+            error_count += 1
+            errors.append(url)
+
+
+    close_connection(cur, con)
+    print("\nErrors:", error_count)
+    if errors:
+        file_ = "database_record_mismatch_errors.txt"
+        with open(file_, "w+") as f:
+            f.writelines(errors)
+
+
 if __name__ == "__main__":
+    pass
 
     file_ = "support/songs.txt"
     with open(file_, "r") as f:
         urls = f.readlines()
 
-    record_creation_errors()
+    check_db_for_errors(urls)
+#     record_creation_errors()
