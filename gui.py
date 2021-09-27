@@ -178,29 +178,25 @@ class Results(tk.Frame):
         self.lyrics.tag_configure("highlight", background="yellow", foreground="black")
 
 
-class App(tk.Tk):
-    def __init__(self):
-        super().__init__()
-        self.notebook = ttk.Notebook(self)
-        self.notebook.pack(side=tk.LEFT, expand=True)
-        self.lyrics_tab = LyricsTab(self.notebook)
-        self.youtube_tab = YouTubeTab(self.notebook)
-        self.notebook.add(self.lyrics_tab, text="Lyrics")
-        self.notebook.add(self.youtube_tab, text="YouTube")
-
 class YouTubeTab(tk.Frame):
     def __init__(self, master):
         super().__init__()
 
+        #results
+        # list box
+#         self.list_ = super().lyrics_tab.results.list_
+        # lyrics
+
+
 class LyricsTab(tk.Frame):
     def __init__(self, master):
         super().__init__()
+
+        #TODO: thread to load stats
 #         self.stats = Stats(self)
 #         # display simple stats
 #         self.stats.records_amt["text"] = self.records
 #         self.stats.artists_amt["text"] = self.artist_count
-
-        #TODO: thread to load stats
 
         self.search = Search(self)
         self.results = Results(self)
@@ -208,17 +204,11 @@ class LyricsTab(tk.Frame):
         self.regex_results = []
         self.index = 0
         self.step = 100
-#         self.fuzzy = False
-
 
         # conveniences
         self.search.artist.focus()
 
         # Quit button
-        #TODO: add styling to fix the quit button?
-#         self.style = ttk.Style()
-#         self.style.configure("My.TButton", background="blue")
-#         self.quit_btn = ttk.Button(self, text="Quit", command=self.quit_gui, style="My.TButton")
         self.quit_btn = ttk.Button(self, text="Quit", command=self.quit_gui)
         self.quit_btn.grid(row=3, column=0, columnspan=10, sticky=tk.E+tk.W)
         self.quit_btn.grid_columnconfigure(0, weight=1)  # allows expansion of columns and rows?
@@ -523,6 +513,17 @@ class LyricsTab(tk.Frame):
 
         # threads.join() ?
         quit()
+
+
+class App(tk.Tk):
+    def __init__(self):
+        super().__init__()
+        self.notebook = ttk.Notebook(self)
+        self.notebook.pack(side=tk.LEFT, expand=True)
+        self.lyrics_tab = LyricsTab(self.notebook)
+        self.youtube_tab = YouTubeTab(self.notebook)
+        self.notebook.add(self.lyrics_tab, text="Lyrics")
+        self.notebook.add(self.youtube_tab, text="YouTube")
 
 
 
