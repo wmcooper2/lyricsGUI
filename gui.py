@@ -30,11 +30,51 @@ def count_files(dir_: str) -> None:
     root.update()
 
 
+# def gap_search(lyrics: list = None, words: list = None, gap: int = 0) -> list:
+def gap_search(lyrics: list=None, words: list=None, gap: int=0) -> list:
+    """Searches for all 'words' with a maximum 'gap' between any pair of neighboring words."""
+    print("GAP:", gap)
+
+    def _search():
+        if words:
+            index = lyrics.index(words[0])
+            try:
+                if index is not None:
+                    if index > len(lyrics) - len(words) or index > gap:
+                        return str(False)
+                    return str(index) + str(gap_search(lyrics[index+1:], words[1:], gap))
+                else:
+                    return str(False)
+            except ValueError:  # word not found in lyrics 
+                return str(False)
+        else:
+            return str(True)
+
+    def _gap_search_result(result: str) -> bool:
+        """Convert the result into a boolean."""
+        #TODO: 
+        if result.endswith("True"):
+            final_seq = result.rstrip("True")
+            print(f"final_seq: {final_seq}")
+            return True
+        else:
+#             print(False)
+            return False
+
+    if lyrics is not None and words is not None:
+        answer = _search()
+        return _gap_search_result(answer)
+    else:
+        return False
+
+
 def input_something_message() -> None:
+    """Advises user to input something if they haven't."""
     messagebox.showinfo(title="Advice", message="Input something to begin a search.")
 
 
 def long_search_message() -> bool:
+    """Displays 'yes/no' confirmation to user if the search may take a long time."""
     message = messagebox.askyesno(title="Word or Phrase Search", message="This may take up to 30 minutes. You may continue to use the program to search while waiting. A notification will appear when the search is finished. Are you sure you want to continue?")
     return message
 
@@ -148,6 +188,10 @@ class Search(tk.Frame):
         
 
 class Results(tk.Frame):
+    search_results = None
+    list_items = None
+    lyrics = None
+
     def __init__(self, master):
         super().__init__()
 #         self.root = ttk.LabelFrame(master, text="Results")
@@ -156,9 +200,10 @@ class Results(tk.Frame):
         self.root.grid_columnconfigure(0, weight=1)  # allows expansion of columns and rows?
 
         # TODO:text results frame
-
         self.search_results = [""]
         self.list_items = tk.StringVar(value=self.search_results)
+        Results.search_results = self.search_results
+        Results.list_items = self.list_items
 
         # song/artist results
         self.artist_song_results_frame = ttk.LabelFrame(self.root, text="Songs by Artist")
@@ -174,6 +219,7 @@ class Results(tk.Frame):
         self.lyrics_results_frame = ttk.LabelFrame(self.root, text="Lyrics")
         self.lyrics_results_frame.grid(row=0, column=1, sticky=tk.E+tk.W+tk.N+tk.S)
         self.lyrics = tk.scrolledtext.ScrolledText(self.lyrics_results_frame, height=25, width=60, wrap=tk.WORD)
+        Results.lyrics = self.lyrics
         self.lyrics.grid(row=0, column=0, sticky=tk.E+tk.W+tk.N+tk.S, padx=5, pady=5)
         self.lyrics.tag_configure("highlight", background="yellow", foreground="black")
 
@@ -181,6 +227,65 @@ class Results(tk.Frame):
 class YouTubeTab(tk.Frame):
     def __init__(self, master):
         super().__init__()
+        
+        #TODO, try to figure out how best to display the lyrics for the song and the video frame
+        # song/artist results
+#         self.artist_song_results_frame = ttk.LabelFrame(self, text="Songs by Artist")
+#         self.artist_song_results_frame.grid(row=0, column=0, sticky=tk.E+tk.W+tk.N+tk.S)
+#         self.list_ = tk.Listbox(self.artist_song_results_frame, width=45, height=10, listvariable=Results.list_items, selectmode=tk.SINGLE)
+#         self.list_.bind("<<ListboxSelect>>", self.handle_results_click)
+#         self.list_.grid(row=0, column=0, sticky=tk.E+tk.W+tk.N+tk.S, padx=5, pady=5)
+#         self.scrollbar = tk.Scrollbar(self.list_)
+#         self.scrollbar.config(command=self.list_.yview)
+#         self.list_.config(yscrollcommand=self.scrollbar.set)
+#         self.lyrics = Results.lyrics
+# 
+#         # lyrics results
+#         self.lyrics_results_frame = ttk.LabelFrame(self, text="Lyrics")
+#         self.lyrics_results_frame.grid(row=1, column=0, sticky=tk.E+tk.W+tk.N+tk.S)
+#         self.lyrics = tk.scrolledtext.ScrolledText(self.lyrics_results_frame, height=25, width=60, wrap=tk.WORD)
+# #         Results.lyrics = self.lyrics
+#         self.lyrics.grid(row=0, column=0, sticky=tk.E+tk.W+tk.N+tk.S, padx=5, pady=5)
+#         self.lyrics.tag_configure("highlight", background="yellow", foreground="black")
+# 
+# 
+    def handle_results_click(self, option: str) -> None:
+        """Load the selected song's lyrics into the lyrics box."""
+        selection = None
+        index = self.list_.curselection()
+        try:
+            selection = option.widget.get(index)
+        except tk.TclError:
+            #TODO:?
+            pass
+
+        song = None
+        artist = None
+        if selection:
+            song_match = re.match('\".*?\"', selection)
+            song = song_match.group(0)
+            song = selection[1:song_match.end()-1]
+            # drop string through quotes
+            by = " by "
+            artist = selection[song_match.end()+len(by):]
+        lyrics = artist_and_song(artist, song)
+        self.show_lyrics(lyrics)
+
+    def show_lyrics(self) -> None:
+        """Load the lyrics results into the text box."""
+        box = self.lyrics
+        data = Results.list_items
+        if data:
+            box.delete("1.0", tk.END)
+            box.insert("1.0", data)
+        else:
+            box.delete("1.0", tk.END)
+            box.delete("1.0", tk.END)
+            box.insert("1.0", "No matching results.")
+
+
+
+           
 
         #results
         # list box
@@ -349,23 +454,27 @@ class LyricsTab(tk.Frame):
 
         #w  : search for all the lyrics that contain that word
         elif w and not s and not a:
-            #TODO: implement a word gap fuzzy lookup
-#             if fuzzy:
-            #TODO: decide on whether or not to give user the cancel ability and how to implement
-            search_in_progress = self.search.button["text"] != "Search"
-            # if there is no search already running
-            if search_in_progress:
-                cancel = ask_to_cancel_search()
-                if cancel:
+            if fuzzy:
+                #TODO: implement a word gap fuzzy lookup
+#                 gap_search(self.search.slider_var.get())
+                gap_search(self.search.slider.get())
+
+            else:
+                #TODO: decide whether or not to give user the cancel ability and how to implement
+                search_in_progress = self.search.button["text"] != "Search"
+                # if there is no search already running
+                if search_in_progress:
+                    cancel = ask_to_cancel_search()
+                    if cancel:
+                        # then run a search
+                        message = long_search_message()
+                        if message:
+                            self.word_search(w, self.song_count)
+                else:
                     # then run a search
                     message = long_search_message()
                     if message:
-                        self.word_search(w, self.song_count)
-            else:
-                # then run a search
-                message = long_search_message()
-                if message:
-                    self.word_search(w, self.search.song_count)
+                        self.word_search(w, self.search.song_count)
 
         # s : load all songs with that title
         elif not w and s and not a:
@@ -510,6 +619,8 @@ class LyricsTab(tk.Frame):
         """Quit the program."""
         #shut down any running threads
         self.cancel_flag = True
+            
+        print(Results.list_items.get())
 
         # threads.join() ?
         quit()
