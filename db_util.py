@@ -76,8 +76,6 @@ def all_artists_and_songs() -> list:
     return records
 
 
-
-
 #TODO, implement fuzzy search outside of db
 def fuzzy_artist(artist: str) -> list:
     """Fuzzy search of 'artist'. Returns songs written by 'artist'."""
@@ -93,10 +91,8 @@ def fuzzy_artist_and_song(artist: str, song: str) -> str:
     """Fuzzy search for a 'song' by an 'artist'. Returns the lyrics."""
     cur, con = connect()
     sql_statement = f"SELECT lyrics FROM demo WHERE LOWER(artist)='{artist.lower()}' AND LOWER(song)='{song.lower()}'"
-    print("sql: ", sql_statement)
     cur.execute(sql_statement)
     results = cur.fetchall()
-    print("results:", results)
     close_connection(cur, con)
     try:
         return results[0][0]
@@ -104,7 +100,7 @@ def fuzzy_artist_and_song(artist: str, song: str) -> str:
         return []
 
 
-def fuzzy_song_query(song: str) -> list:
+def fuzzy_artist_query(song: str) -> list:
     """Fuzzy search for 'song'. Returns list of artists and the song."""
     cur, con = connect()
     sql_statement = f"SELECT artist,song FROM demo WHERE LOWER(song)='{song.lower()}'"
@@ -116,10 +112,8 @@ def fuzzy_song_query(song: str) -> list:
 
 def record_check(artist: str, song: str, cur: sqlite3.Cursor) -> bool:
     """Checks if a record exists in the database """
-#     cur, con = connect()
     cur.execute('SELECT artist FROM songs WHERE artist=? AND song=?', (artist, song))
     results = cur.fetchall()
-#     close_connection(cur, con)
     return bool(results)
 
 
@@ -140,13 +134,25 @@ def record_count() -> int:
     return result
 
 
-def song_query(name: str) -> list:
+def artist_query(name: str) -> list:
+    """Get all artists who have a song 'name'."""
     cur, con = connect()
     cur.execute('SELECT artist,song FROM demo WHERE song=?', (name,))
+#     cur.execute('SELECT artist,song FROM demo WHERE artist=?', (name,))
     results = cur.fetchall()
-#     print("results:", results)
     close_connection(cur, con)
-#     return [r[0] for r in results]
+    return results
+
+
+
+def song_query(name: str) -> list:
+    """Get all artists who have a song 'name'."""
+    cur, con = connect()
+#     cur.execute('SELECT artist,song FROM demo WHERE song=?', (name,))
+    print("name:", name)
+    cur.execute('SELECT artist,song FROM demo WHERE artist=?', (name,))
+    results = cur.fetchall()
+    close_connection(cur, con)
     return results
 
 
