@@ -42,7 +42,7 @@ Possible Search Patterns:
 
 
 ### Testing
-_Working on it._
+Run `python3 -m pytest [filename]`  
 
 
 #TODO, update the stuff below

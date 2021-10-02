@@ -2,18 +2,15 @@
 import re
 import sqlite3
 
-
+################################################################################
+#   Demo DB
+################################################################################
 def connect():
     con = sqlite3.connect("Databases/demo.db")
     cur = con.cursor()
     return cur, con
 
-def connect_to(db_name: str):
-    con = sqlite3.connect(db_name)
-    cur = con.cursor()
-    return cur, con
-
-#TODO: delete in favor of artist2()?
+#TODO: replaced with song_query()?
 def artist(name: str) -> list:
     cur, con = connect()
     cur.execute('SELECT song FROM demo WHERE artist=?', (name,))
@@ -22,6 +19,7 @@ def artist(name: str) -> list:
     return [r[0] for r in results]
 
 
+#TODO: replaced with song_query()?
 def artist2(name: str) -> list:
     cur, con = connect()
     cur.execute('SELECT artist,song FROM demo WHERE artist=?', (name,))
@@ -38,12 +36,12 @@ def artists() -> list:
     return result
 
 
-def artist_count() -> int:
-    cur, con = connect()
-    cur.execute('SELECT COUNT(DISTINCT artist) FROM demo')
-    result = cur.fetchall()[0][0]
-    close_connection(cur, con)
-    return result
+# def artist_count() -> int:
+#     cur, con = connect()
+#     cur.execute('SELECT COUNT(DISTINCT artist) FROM demo')
+#     result = cur.fetchall()[0][0]
+#     close_connection(cur, con)
+#     return result
 
 
 def artist_and_song(artist: str, song: str) -> str:
@@ -61,16 +59,7 @@ def artist_and_song(artist: str, song: str) -> str:
 def index_search(index: int, step: int) -> list:
     """Search for records starting at 'index'."""
     cur, con = connect()
-    cur.execute('SELECT * FROM demo WHERE id>=? AND id<=?', (index, index+100))
-    records = cur.fetchall()
-    close_connection(cur, con)
-    return records
-
-
-def all_artists_and_songs() -> list:
-    """Get all records' artist and song fields."""
-    cur, con = connect_to("Databases/lyrics.db")
-    cur.execute('SELECT * FROM songs;')
+    cur.execute('SELECT * FROM demo WHERE id>=? AND id<=?', (index, index+step))
     records = cur.fetchall()
     close_connection(cur, con)
     return records
@@ -100,7 +89,7 @@ def fuzzy_artist_and_song(artist: str, song: str) -> str:
         return []
 
 
-def fuzzy_artist_query(song: str) -> list:
+def fuzzy_song(song: str) -> list:
     """Fuzzy search for 'song'. Returns list of artists and the song."""
     cur, con = connect()
     sql_statement = f"SELECT artist,song FROM demo WHERE LOWER(song)='{song.lower()}'"
@@ -110,13 +99,28 @@ def fuzzy_artist_query(song: str) -> list:
     return results
 
 
-def record_check(artist: str, song: str, cur: sqlite3.Cursor) -> bool:
-    """Checks if a record exists in the database """
-    cur.execute('SELECT artist FROM songs WHERE artist=? AND song=?', (artist, song))
+def artist_query(name: str) -> list:
+    """Get all artists who have a song 'name'."""
+    cur, con = connect()
+    cur.execute('SELECT artist,song FROM demo WHERE song=?', (name,))
     results = cur.fetchall()
-    return bool(results)
+    close_connection(cur, con)
+    return results
 
 
+def song_query(artist: str) -> list:
+    """Get all songs from 'artist'."""
+    cur, con = connect()
+    cur.execute('SELECT artist,song FROM demo WHERE artist=?', (artist,))
+    results = cur.fetchall()
+    close_connection(cur, con)
+    return results
+
+
+################################################################################
+#   Lyrics DB
+################################################################################
+#TODO, test
 def mp_record_check(artist: str, song: str) -> bool:
     """Checks if a record exists in the database """
     cur, con = connect_to("Databases/lyrics.db")
@@ -126,34 +130,31 @@ def mp_record_check(artist: str, song: str) -> bool:
     return bool(results)
 
 
-def record_count() -> int:
-    cur, con = connect()
-    cur.execute('SELECT COUNT(*) FROM demo')
-    result = cur.fetchall()[0][0]
+#TODO, test
+def all_artists_and_songs() -> list:
+    """Get all records' artist and song fields."""
+    cur, con = connect_to("Databases/lyrics.db")
+    cur.execute('SELECT * FROM songs;')
+    records = cur.fetchall()
     close_connection(cur, con)
-    return result
+    return records
 
 
-def artist_query(name: str) -> list:
-    """Get all artists who have a song 'name'."""
-    cur, con = connect()
-    cur.execute('SELECT artist,song FROM demo WHERE song=?', (name,))
-#     cur.execute('SELECT artist,song FROM demo WHERE artist=?', (name,))
+def record_check(artist: str, song: str, cur: sqlite3.Cursor) -> bool:
+    """Checks if a record exists in the database """
+    cur.execute('SELECT artist FROM songs WHERE artist=? AND song=?', (artist, song))
     results = cur.fetchall()
-    close_connection(cur, con)
-    return results
+    return bool(results)
 
 
 
-def song_query(name: str) -> list:
-    """Get all artists who have a song 'name'."""
-    cur, con = connect()
-#     cur.execute('SELECT artist,song FROM demo WHERE song=?', (name,))
-    print("name:", name)
-    cur.execute('SELECT artist,song FROM demo WHERE artist=?', (name,))
-    results = cur.fetchall()
-    close_connection(cur, con)
-    return results
+################################################################################
+#   Shared Functions
+################################################################################
+def connect_to(db_name: str):
+    con = sqlite3.connect(db_name)
+    cur = con.cursor()
+    return cur, con
 
 
 def _save(con) -> None:
@@ -163,3 +164,17 @@ def _save(con) -> None:
 def close_connection(cur, con) -> None:
     cur.close()
     con.close()
+
+
+def record_count(db: str="demo") -> int:
+    if db == "demo":
+        cur, con = connect()
+    else:
+        cur, con = connect_to("Databases/lyrics.db")
+    sql_statement = f'SELECT COUNT(*) FROM {db}'
+    cur.execute(sql_statement)
+    result = cur.fetchall()[0][0]
+    close_connection(cur, con)
+    return result
+
+

@@ -3,7 +3,8 @@ import tkinter as tk
 from tkinter import ttk
 
 #custom
-from db_util import record_count, artist_count
+# from db_util import record_count, artist_count
+from db_util import record_count, artists
 
 
 class Search(tk.Frame):
@@ -12,7 +13,7 @@ class Search(tk.Frame):
 
         self.fuzzy = False
         self.song_count = record_count()
-        self.artist_count = artist_count()
+        self.artist_count = artists()
 
 #         self.root = ttk.LabelFrame(master, text="Search")
         self.root = ttk.Frame(master)

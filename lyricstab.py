@@ -1,6 +1,7 @@
 #std lib
 import csv
 import logging
+from pprint import pprint
 import re
 import threading
 import time
@@ -8,6 +9,7 @@ import tkinter as tk
 from tkinter import filedialog
 from tkinter import ttk
 from tkinter import messagebox
+from typing import Any
 
 #custom
 from db_util import (
@@ -16,7 +18,7 @@ from db_util import (
         artist_and_song,
         fuzzy_artist,
         fuzzy_artist_and_song,
-        fuzzy_artist_query,
+        fuzzy_song,
         index_search,
         song_query)
 from results import Results
@@ -113,10 +115,7 @@ class LyricsTab(tk.Frame):
         self.results.lyrics.insert("1.0", data)
 
     
-#     def _update_lyrics_results(self, data: list) -> None:
     def _update_results_list(self, data: list) -> None:
-#         box.insert("1.0", data)
-#         self.results.list_.insert(0, f'"{song}" by {artist}')
         self.results.list_.insert(0, data)
 
 
@@ -235,7 +234,7 @@ class LyricsTab(tk.Frame):
         elif w and s and not a:
             if fuzzy:
                 #find all songs that are similar
-                artists = fuzzy_artist_query(s)
+                artists = fuzzy_song(s)
                 #TODO: ...then tag the lyrics
 
         #TODO: this one might be a little more involved...
@@ -243,7 +242,7 @@ class LyricsTab(tk.Frame):
         elif w and not s and a:
             if fuzzy:
                 #find all artists that are similar
-                artists = fuzzy_artist_query(s)
+                artists = fuzzy_song(s)
 
                 #just load all the songs by the artist.
                 #when a song is clicked, grab the lyrics from the DB and add tags on the spot
@@ -273,7 +272,11 @@ class LyricsTab(tk.Frame):
             if fuzzy:
                 #TODO: implement a word gap fuzzy lookup
                 # adapt self.word_search to call a thread with the gap argument
-                self.gap_search(self.search.slider.get())
+                # for lyrics in DB:
+                    # search through each song for a match
+                    # if match, put song and artist in results list
+                gap = self.search.slider.get()
+                self.fuzzy_word_search(w, self.search.song_count, gap)
 
             else:
                 #TODO, rethink cancelling a threaded word search
@@ -284,7 +287,7 @@ class LyricsTab(tk.Frame):
                     if cancel:
                         message = self.long_search_message()
                         if message:
-                            self.word_search(w, self.song_count)
+                            self.word_search(w, self.search.song_count)
                 else:
                     message = self.long_search_message()
                     if message:
@@ -294,7 +297,7 @@ class LyricsTab(tk.Frame):
         elif not w and s and not a:
             artists = None
             if fuzzy:
-                artists = fuzzy_artist_query(s)
+                artists = fuzzy_song(s)
             else:
                 artists = artist_query(s)
             if artists:
@@ -312,11 +315,53 @@ class LyricsTab(tk.Frame):
         else:
             self.input_something_message()
 
+    def fuzzy_thread_manager(self, pattern: str, limit: int, gap: int) -> None:
+            """Main fuzzy-search thread."""
+            #TODO: finish the threaded gap search
+            start_time = time.time()
+            while self.index < limit and not self.cancel_flag:
 
-    def fuzzy_word_search(self, pattern: str, limit: int):
-        """Search for 'pattern' in all lyrics."""
+                #TODO: pass list of words...
+                thread = threading.Thread(target=self.gap_search, args=(pattern, gap))
+
+                thread.start()
+                while thread.is_alive():        # wait for the thread to finish
+                    continue
+                thread.join()                   # end the thread, (timeout=5) ? 
+                self.index += self.step
+                if self.search.progress.get() >= self.search.song_count:
+                    break
+                self._increment_progress()
+
+            end_time = time.time()
+            time_taken = (end_time - start_time) / 60
+            result_count = len(self.regex_results)
+            self._stop_progress_bar()
+            self._reset_cancel_flag()
+            self._update_progress_label(f"Search completed in {round(time_taken, 3)} minutes. {result_count} matches found.")
+            self._reset_index()
+            self._enable_word_entry()
+            self._enable_word_gap_scale()
+            self._save_search_results(regex.pattern, self.regex_results)
+            self._ask_to_display_results(result_count)
+
+
+    def fuzzy_word_search(self, pattern: str, limit: int, gap: int):
+        """Search for 'pattern' with max 'gap' between any pairs of neighboring words in 'pattern' through all lyrics."""
+        #set up the gui for threaded search
+        self._update_progress_label(f"Searching for: '{pattern}'...")
+        self._clear_lyrics()
+        self._clear_results_list()
+        self._clear_search_entry()
+        self._disable_word_entry()
+        self._disable_word_gap_scale()
+        self.regex_results = []
+        self.cancel_flag = False
+        self.index = 0
+        print(f"fuzzy_word_search(): pattern={pattern}, limit={limit}, gap={gap}")
+#         print(f"{fuzzy_word_search.__name__}(), ")
         try:
-            manager_thread = threading.Thread(target=self.thread_manager, args=(limit, pattern))
+            manager_thread = threading.Thread(target=self.fuzzy_thread_manager, args=(pattern, limit, gap))
             manager_thread.start()
         except RuntimeError:
             logging.debug(f"RuntimeError, {word_search.__name__}(): pattern={pattern}")
@@ -324,26 +369,19 @@ class LyricsTab(tk.Frame):
 
     def show_songs(self, data: list) -> None:
         """Load the song and artist results into the list box."""
-#         box = self.results.list_
-#         self._clear_results()
         self._clear_lyrics()
         self._clear_results_list()
 
         if len(data) > 1:
             for index, record in enumerate(sorted(data, reverse=True)):
                 song, artist = record[1].title(), record[0].title()
-#                 self.results.list_.insert(0, f'"{song}" by {artist}')
                 self._update_results_list(f'"{song}" by {artist}')
         elif len(data) == 1:
-#             self.results.list_.delete(0, tk.END)
-#             self._clear_results_list()
             song, artist = data[0][1].title(), data[0][0].title()
-#             self.results.list_.insert(0, f'"{song}" by {artist}')
             self._update_results_list(f'"{song}" by {artist}')
             lyrics = artist_and_song(artist, song)
             self.show_lyrics(lyrics)
         else:
-#             box.insert(0, "No matching results.")
             self._update_results_list(["No matching results."])
 
 
@@ -351,14 +389,11 @@ class LyricsTab(tk.Frame):
         """Load the lyrics results into the text box."""
         self._clear_lyrics()
         if data:
-#             self._update_results_list(data)
             self._update_lyrics_box(data)
         else:
-#             self._update_results_list(["No matching results."])
             self._update_lyrics_box(["No matching results."])
 
 
-    #TODO, refactor
     def thread_manager(self, limit: int, regex: re.Pattern) -> None:
         """Main search thread."""
         start_time = time.time()
@@ -416,52 +451,89 @@ class LyricsTab(tk.Frame):
         quit()
 
 
-    # def gap_search(lyrics: list = None, words: list = None, gap: int = 0) -> list:
-    def gap_search(self, lyrics: list=None, words: list=None, gap: int=0) -> list:
-        """Searches for all 'words' with max 'gap' between any neighboring pair of words."""
-        
-        gap = int(gap)
-        def _search():
-            if words:
-                index = lyrics.index(words[0])
-                try:
-                    if index is not None:
-                        if index > len(lyrics) - len(words) or index > gap:
-                            return str(False)
-                        return str(index) + str(gap_search(lyrics[index+1:], words[1:], gap))
-                    else:
-                        return str(False)
-                except ValueError:  # word not found in lyrics 
+    def distant_neighboring_words(self, lyrics: list, words: list, gap: int) -> Any:
+        """This algorithm is the heart of the gap_search() function."""
+        try:
+            index = lyrics.index(words[0])
+        except:
+            index = None
+        try:
+            if index is not None:
+                if index > len(lyrics) - len(words) or index > gap:
                     return str(False)
+#                         return str(index) + str(gap_search(lyrics[index+1:], words[1:], gap))
+                return str(index) + str(self.distant_neighboring_words(lyrics[index+1:], words[1:], gap))
             else:
-                return str(True)
+                return str(False)
+        except ValueError:  # word not found in lyrics 
+            logging.debug(f"ValueError: {words}")
+            return str(False)
+#     else:
+#                 return str(True)
+#         return str(False)
+
+
+#     def gap_search(self, lyrics: list=None, words: list=None, gap: int=0) -> list:
+    def gap_search(self, words: str="", gap: int=0) -> list:
+        """Searches for all 'words' with max 'gap' between any neighboring pair of words."""
+
+        #TODO: make custom type for return value
+#         def _search(lyrics: list, words: list) -> Any:
+#             index = None
+#             if words:
+#                 try:
+#                     index = lyrics.index(words[0])
+#                 except:
+#                     #TODO
+#                     pass
+#                 try:
+#                     if index is not None:
+#                         if index > len(lyrics) - len(words) or index > gap:
+#                             return str(False)
+# #                         return str(index) + str(gap_search(lyrics[index+1:], words[1:], gap))
+#                         return str(index) + str(_search(lyrics[index+1:], words[1:], gap))
+#                     else:
+#                         return str(False)
+#                 except ValueError:  # word not found in lyrics 
+#                     logging.debug(f"ValueError: {words}")
+#                     return str(False)
+#             else:
+# #                 return str(True)
+#                 return str(False)
 
         def _gap_search_result(result: str) -> bool:
             """Convert the result into a boolean."""
             #TODO: 
             if result.endswith("True"):
                 final_seq = result.rstrip("True")
-                print(f"final_seq: {final_seq}")
+#                 print(f"final_seq: {final_seq}")
                 return True
             else:
                 return False
 
-        if lyrics is not None and words is not None:
-            answer = _search()
-            return _gap_search_result(answer)
-        else:
-            return False
+        #start here
+        if words:
+            gap = int(gap)
+            words = words.split(" ")
+            #TODO: remove punct?
+            # fuzzy gap search through all the lyrics in this index interval
+            for i, artist, song, lyrics in index_search(self.index, self.step):
+#                 print(lyrics[:40])
+                if lyrics is not None and words is not None:
+                    answer = self.distant_neighboring_words(lyrics, words, gap)
+#                     print("Gap Search result:", words, answer)
+                    return _gap_search_result(answer)
+#                 else:
+#                     return []
+#         else:
+        return []
 
 
     def long_search_message(self) -> bool:
         """Displays 'yes/no' confirmation to user if the search may take a long time."""
-        message = messagebox.askyesno(title="Word or Phrase Search", message="This may take up to 30 minutes. You may continue to use the program to search while waiting. The word entry field and word gap option will be disabled until the search is completed. A notification will appear when the search is finished. Are you sure you want to continue?")
-        return message
-
+        return messagebox.askyesno(title="Word or Phrase Search", message="This may take up to 30 minutes. You may continue to use the program to search while waiting. The word entry field and word gap option will be disabled until the search is completed. A notification will appear when the search is finished. Are you sure you want to continue?")
 
 
     def input_something_message(self) -> None:
         """Advises user to input something if they haven't."""
         messagebox.showinfo(title="Advice", message="Input something to begin a search.")
-
-

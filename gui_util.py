@@ -94,4 +94,5 @@ def quit_gui() -> None:
 
 def update_stats(records, artists):
     records_amt["text"] = record_count()
-    artists_amt["text"] = artist_count()
+#     artists_amt["text"] = artist_count()
+    artists_amt["text"] = artists()
