@@ -2,6 +2,7 @@
 import re
 import sqlite3
 
+# csv.field_size_limit(sys.maxsize)  # Increase field size limit
 ################################################################################
 #   Demo DB
 ################################################################################
@@ -17,6 +18,15 @@ def artist(name: str) -> list:
     results = cur.fetchall()
     close_connection(cur, con)
     return [r[0] for r in results]
+
+
+def artist_query(name: str) -> list:
+    """Get all artists who have a song 'name'."""
+    cur, con = connect()
+    cur.execute('SELECT artist,song FROM demo WHERE song=?', (name,))
+    results = cur.fetchall()
+    close_connection(cur, con)
+    return results
 
 
 #TODO: replaced with song_query()?
@@ -99,13 +109,17 @@ def fuzzy_song(song: str) -> list:
     return results
 
 
-def artist_query(name: str) -> list:
-    """Get all artists who have a song 'name'."""
-    cur, con = connect()
-    cur.execute('SELECT artist,song FROM demo WHERE song=?', (name,))
-    results = cur.fetchall()
-    close_connection(cur, con)
-    return results
+def populate_db_with_demo_data() -> None:
+    """Inserts about 60000 songs into the database"""
+    counter = 0
+    with open("Databases/demo.csv", "r") as f:
+        data = csv.reader(f, delimiter="|")
+        for row in data:
+            print("data row:", row)
+            row = [counter] + row
+            cur.execute("""INSERT INTO songs VALUES(?, ?, ?, ?)""", row)
+            counter += 1
+            print(counter, end="\r")
 
 
 def song_query(artist: str) -> list:
@@ -147,7 +161,6 @@ def record_check(artist: str, song: str, cur: sqlite3.Cursor) -> bool:
     return bool(results)
 
 
-
 ################################################################################
 #   Shared Functions
 ################################################################################
@@ -157,11 +170,12 @@ def connect_to(db_name: str):
     return cur, con
 
 
-def _save(con) -> None:
+def _save(con: sqlite3.Connection) -> None:
     con.commit()
 
 
-def close_connection(cur, con) -> None:
+def close_connection(cur: sqlite3.Cursor, con: sqlite3.Connection) -> None:
+    _save(con)
     cur.close()
     con.close()
 
@@ -176,5 +190,17 @@ def record_count(db: str="demo") -> int:
     result = cur.fetchall()[0][0]
     close_connection(cur, con)
     return result
+
+
+def init_db_table(cur: sqlite3.Cursor) -> None:
+    cur.execute("""CREATE TABLE IF NOT EXISTS songs(id INTEGER PRIMARY KEY AUTOINCREMENT, artist TEXT NOT NULL, song TEXT NOT NULL, lyrics TEXT NOT NULL)""")
+
+
+def get_highest_db_index(cur: sqlite3.Cursor, table: str) -> int:
+    sql_statement = f"SELECT MAX(id) FROM {table}"
+    result = cur.execute(sql_statement)
+    result = result.fetchall()
+    return result[0][0]
+
 
 

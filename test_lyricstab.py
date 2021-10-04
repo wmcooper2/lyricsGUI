@@ -51,5 +51,5 @@ def test_lyrics(lyrics):
 
 #TODO
 def test_gap_search(App, lyrics):
-    assert App.distant_neighboring_words(lyrics, ["need", "a"], 1) == str(True)
+    assert App.distant_neighboring_words(lyrics, ["should", "wear"], 3) == str(True)
 

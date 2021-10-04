@@ -1,3 +1,4 @@
+"""This module is intended to create/gather simple metrics about each song's lyrics to then insert into the database."""
 # std lib
 from pprint import pprint
 from time import time

@@ -332,17 +332,18 @@ class LyricsTab(tk.Frame):
                 if self.search.progress.get() >= self.search.song_count:
                     break
                 self._increment_progress()
-
             end_time = time.time()
             time_taken = (end_time - start_time) / 60
             result_count = len(self.regex_results)
+
+            # reset the gui after the threaded search is finished
             self._stop_progress_bar()
             self._reset_cancel_flag()
             self._update_progress_label(f"Search completed in {round(time_taken, 3)} minutes. {result_count} matches found.")
             self._reset_index()
             self._enable_word_entry()
             self._enable_word_gap_scale()
-            self._save_search_results(regex.pattern, self.regex_results)
+            self._save_search_results(pattern, self.regex_results)
             self._ask_to_display_results(result_count)
 
 
@@ -453,53 +454,29 @@ class LyricsTab(tk.Frame):
 
     def distant_neighboring_words(self, lyrics: list, words: list, gap: int) -> Any:
         """This algorithm is the heart of the gap_search() function."""
-        try:
-            index = lyrics.index(words[0])
-        except:
-            index = None
-        try:
-            if index is not None:
-                if index > len(lyrics) - len(words) or index > gap:
+
+        if words:
+            try:
+                index = lyrics.index(words[0])
+            except:
+                index = None
+            try:
+                if index is not None:
+                    if index > len(lyrics) - len(words) or index > gap:
+                        return str(False)
+                    return str(index) + str(self.distant_neighboring_words(lyrics[index+1:], words[1:], gap))
+                else:
                     return str(False)
-#                         return str(index) + str(gap_search(lyrics[index+1:], words[1:], gap))
-                return str(index) + str(self.distant_neighboring_words(lyrics[index+1:], words[1:], gap))
-            else:
+            except ValueError:  # word not found in lyrics 
+                logging.debug(f"ValueError: {words}")
                 return str(False)
-        except ValueError:  # word not found in lyrics 
-            logging.debug(f"ValueError: {words}")
-            return str(False)
-#     else:
-#                 return str(True)
-#         return str(False)
+        else:
+            return str(True)
 
-
+ 
 #     def gap_search(self, lyrics: list=None, words: list=None, gap: int=0) -> list:
     def gap_search(self, words: str="", gap: int=0) -> list:
         """Searches for all 'words' with max 'gap' between any neighboring pair of words."""
-
-        #TODO: make custom type for return value
-#         def _search(lyrics: list, words: list) -> Any:
-#             index = None
-#             if words:
-#                 try:
-#                     index = lyrics.index(words[0])
-#                 except:
-#                     #TODO
-#                     pass
-#                 try:
-#                     if index is not None:
-#                         if index > len(lyrics) - len(words) or index > gap:
-#                             return str(False)
-# #                         return str(index) + str(gap_search(lyrics[index+1:], words[1:], gap))
-#                         return str(index) + str(_search(lyrics[index+1:], words[1:], gap))
-#                     else:
-#                         return str(False)
-#                 except ValueError:  # word not found in lyrics 
-#                     logging.debug(f"ValueError: {words}")
-#                     return str(False)
-#             else:
-# #                 return str(True)
-#                 return str(False)
 
         def _gap_search_result(result: str) -> bool:
             """Convert the result into a boolean."""
@@ -514,18 +491,14 @@ class LyricsTab(tk.Frame):
         #start here
         if words:
             gap = int(gap)
-            words = words.split(" ")
-            #TODO: remove punct?
-            # fuzzy gap search through all the lyrics in this index interval
             for i, artist, song, lyrics in index_search(self.index, self.step):
-#                 print(lyrics[:40])
                 if lyrics is not None and words is not None:
+                    lyrics = lyrics.split(" ")
+                    words = words.split(" ")
+                    #TODO: remove punct from words and lyrics? 
                     answer = self.distant_neighboring_words(lyrics, words, gap)
-#                     print("Gap Search result:", words, answer)
+                    print(f"Gap Search; result: {answer}, artist: {artist}, song: {song}")
                     return _gap_search_result(answer)
-#                 else:
-#                     return []
-#         else:
         return []
 
 

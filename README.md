@@ -4,8 +4,9 @@ A CLI tool for setting up the Lyrics database.
 
 ### TODO
 1. write tests
-2. Add notebook tabs
-3. Add Youtube video lookup functionality.
+# 2. Add notebook tabs
+# 3. Add Youtube video lookup functionality.
+4. As the fuzzy search for words and phrases is working, load the results into the list box as they come in
 
 ### Purpose(s)
 To setup a database for a future lyrics search program.  

@@ -1,3 +1,4 @@
+"""This module is mostly about handling the tarballs, but also has some simple, useful functions for handling text files."""
 # std lib
 from collections import namedtuple
 import io
