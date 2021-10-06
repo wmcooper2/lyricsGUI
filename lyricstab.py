@@ -25,6 +25,9 @@ from results import Results
 from search import Search
 
 class LyricsTab(tk.Frame):
+
+    #TODO, make the list box accessible through @classmethod?
+
     def __init__(self, master):
         super().__init__()
 
@@ -134,20 +137,26 @@ class LyricsTab(tk.Frame):
         try:
             selection = option.widget.get(index)
         except tk.TclError:
-            #TODO:?
-            pass
+            #TODO: log error?
+            raise Exception("Error: tkinter problem with what you just clicked") from None
 
         song = None
         artist = None
         if selection:
-            song_match = re.match('\".*?\"', selection)
+            try:
+                song_match = re.match('\".*?\"', selection)
+            except TypeError:
+                #TODO: log error?
+                song_match = None
+
+        if song_match:
             song = song_match.group(0)
             song = selection[1:song_match.end()-1]
             # drop string through quotes
             by = " by "
             artist = selection[song_match.end()+len(by):]
-        lyrics = artist_and_song(artist, song)
-        self.show_lyrics(lyrics)
+            lyrics = artist_and_song(artist, song)
+            self.show_lyrics(lyrics)
 
 
     def highlight_lyrics(self, lyrics: str, words: list) -> None:
@@ -441,6 +450,9 @@ class LyricsTab(tk.Frame):
             manager_thread.start()
         except RuntimeError:
             logging.debug(f"RuntimeError, {word_search.__name__}(): pattern={pattern}")
+            #TODO, figure out the use of "from None" in exception handling to return just the most recent exception traceback
+#         except Exception as e from None
+#             print("Error: thread_manager()")
 
 
     def quit_gui(self) -> None:

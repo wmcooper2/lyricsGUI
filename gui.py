@@ -8,7 +8,7 @@ from results import Results
 from lyricstab import LyricsTab
 from youtubetab import YouTubeTab
 
-logging.basicConfig(filename='errors.log', encoding='utf-8', level=logging.DEBUG)
+logging.basicConfig(filename='Logs/errors.log', encoding='utf-8', level=logging.DEBUG)
 
 class App(tk.Tk):
     def __init__(self):

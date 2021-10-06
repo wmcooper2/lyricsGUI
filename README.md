@@ -21,16 +21,18 @@ The final program will contain 5 major stages/areas:
     * Clean     - normalize/rename/preprocess in preparation for easy use in later stages/areas  
         * CLI tool: `preprocess.py`  
     * Search    - search for grammar patterns/"vocabulary lists"/etc   
+    * Storage   - store the data in an SQL database, (sqlite3 for testing, PostgreSQL for production)
     * Metrics   - calculate metrics that require iterating through the entire data set  
     * Recommend - using user profiles and data about the lyrics, recommend other forms of media related to the user's search  
 
 ### Setup
+_tentative_
 1. Make sure `Databases/lyrics.csv` exists.
 2. Run `init_database.py` once.
 3. Inspect the contents of the DB with "DB Browser for SQLite" application or shell.
 
 ### Operation
-Run `guy.py`  
+Run `gui.py`  
 
 Possible Search Patterns:  
 
@@ -43,11 +45,12 @@ Possible Search Patterns:
 
 
 ### Testing
-Run `python3 -m pytest [filename]`  
+Run `pytest`  
 
 
 #TODO, update the stuff below
 ### Notes on Database Operations
+_see the TODO tags spread throughout the source code_
 * Adding fields to DB
     * manually from DB's shell: `ALTER TABLE songs ADD COLUMN englishScore text;`
     * using this CLI tool: `python3 main.py --dbfield englishScore text`
@@ -55,17 +58,7 @@ Run `python3 -m pytest [filename]`
     * have to copy data to new table to delete a field...
 * Update a single column single record value;
     * manually from DB's shell: `UPDATE songs SET englishScore=99 WHERE artist="Rihanna";`
-* Combine tarballs (uncompressed)
-    * manually, go to "Lyrics/" and run:
-        ```python
-        import tarfile
-        from pathlib import Path
 
-        with tarfile.open(name="combined.tar", mode="a") as combined:
-            for file_ in Path(".").glob("*.txt"):
-                combined.add(file_)
-        ```
-    * then, move "combined.tar" to the project's root dir.
 
 
 ## Profiling
