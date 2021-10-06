@@ -84,7 +84,7 @@ def check_db_for_errors(urls: list) -> None:
         with open(file_, "w+") as f:
             f.writelines(errors)
 
-def create_records():
+def create_records(urls: list):
     for index, url in enumerate(urls):
         print(f"Progress: {index}", end="\r")
         yield artist_song_from_url(url)
@@ -110,7 +110,7 @@ def mp_check_db_for_errors(urls: list) -> None:
     error_count = mp.Value("i", 0)
     q = mp.Queue()
     quit_flag = False
-    records = create_records()
+    records = create_records(urls)
     record_count = 0
 #     pool = mp.Pool(5)
 #     processes = mp.Queue()
@@ -159,7 +159,7 @@ def load_urls() -> list:
         return f.readlines()
 
 
-def parse_unique_records(urls) -> list:
+def parse_unique_records(urls: list) -> list:
     unique_records = set()          
     for index, url in enumerate(urls):
         record = artist_song_from_url(url)
@@ -170,7 +170,7 @@ def parse_unique_records(urls) -> list:
     return unique_records
 
 
-def artist_song_file_names(urls) -> list:
+def artist_song_file_names(urls: list) -> list:
     file_names = set()
     for index, url in enumerate(urls):
         record = artist_song_from_url(url)
@@ -181,7 +181,7 @@ def artist_song_file_names(urls) -> list:
     return file_names
 
 
-def load_pickle(file_name) -> list:
+def load_pickle(file_name: str) -> list:
     f = open(file_name, "rb")
     data = pickle.load(f)
     f.close()
@@ -189,12 +189,12 @@ def load_pickle(file_name) -> list:
 
 
 def pickle_records(records: list) -> None:
-    f = open("MetricsAndData/unique_records.pickle", "wb+")
+    f = open("Databases/unique_records.pickle", "wb+")
     pickle.dump(records, f)
     f.close()
 
 
-def pickle_artists(urls) -> None:
+def pickle_artists(urls: list) -> None:
     artists = set()          
     for index, url in enumerate(urls):
         record = artist_song_from_url(url)
@@ -202,7 +202,7 @@ def pickle_artists(urls) -> None:
         print("Progress:", index, end="\r")
     artists = list(artists)
     artists.sort()
-    f = open("MetricsAndData/unique_artists.pickle", "wb+")
+    f = open("Databases/unique_artists.pickle", "wb+")
     pickle.dump(artists, f)
     f.close()
 
@@ -215,7 +215,7 @@ def pickle_songs(urls: list) -> None:
         print("Progress:", index, end="\r")
     songs = list(songs)
     songs.sort()
-    f = open("MetricsAndData/unique_songs.pickle", "wb+")
+    f = open("Databases/unique_songs.pickle", "wb+")
     pickle.dump(songs, f)
     f.close()
 
@@ -227,7 +227,7 @@ def save_text_file(file_name: str, data: list) -> None:
 
 
 def pickle_artist_song_file_names(data: list) -> None:
-    f = open("MetricsAndData/artist_song_file_names.pickle", "wb+")
+    f = open("Databases/artist_song_file_names.pickle", "wb+")
     pickle.dump(data, f)
     f.close()
 
@@ -250,11 +250,11 @@ if __name__ == "__main__":
 
     #Save Unique Artist_Song filenames to text file
     file_names = artist_song_file_names(urls)                                 # Good
-    save_text_file("MetricsAndData/artist_song_file_names.txt", file_names)   # Good
+    save_text_file("Databases/artist_song_file_names.txt", file_names)   # Good
 
     #Pickle Unique Artist_Song filenames
     pickle_artist_song_file_names(file_names)                                 # Good
-#     records = load_pickle("MetricsAndData/artist_song_file_names.pickle")     # Good
+#     records = load_pickle("Databases/artist_song_file_names.pickle")     # Good
 #     print(records[1000:1010])
     
     #Error Checking
@@ -264,18 +264,18 @@ if __name__ == "__main__":
 
     #Pickle Records
 #     pickle_records(unique_records)
-#     records = load_pickle("MetricsAndData/unique_records.pickle")     # Good
+#     records = load_pickle("Databases/unique_records.pickle")     # Good
 #     print("Loaded Pickle:", records[10000:10010])
 
     #Pickle Unique Artists
 #     pickle_artists(urls)                                              # Good
-#     records = load_pickle("MetricsAndData/unique_artists.pickle")     # Good
+#     records = load_pickle("Databases/unique_artists.pickle")     # Good
 #     print("Loaded Pickle:", records[10000:10010])                     # Good
 
 
     #Pickle Unique Songs
 #     pickle_songs(urls)
-#     records = load_pickle("MetricsAndData/unique_songs.pickle")         # Good
+#     records = load_pickle("Databases/unique_songs.pickle")         # Good
 #     print("Loaded Pickle:", records[10000:10010])                       # Good
 
 

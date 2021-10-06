@@ -40,7 +40,7 @@ if __name__ == "__main__":
     cur, con = db_util.connect_to(f"Databases/{base_name}.db")
     db_util.init_db_table(cur)
 
-    records = parser.load_pickle("MetricsAndData/artist_song_file_names.pickle")
+    records = parser.load_pickle("Databases/artist_song_file_names.pickle")
 
     #start here
     # get max index of last db entry

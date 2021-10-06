@@ -11,6 +11,7 @@ import re
 #custom
 from parse_urls import load_pickle, save_text_file, pickle_file_records
 
+FileRecord = namedtuple("FileRecord", ["artist", "song", "path"])
 
 def split_file_name(file_name: str) -> list:
     """Get the artist and song from the file name."""
@@ -46,29 +47,33 @@ def create_file_records_from_dir(dir_: str, records: set) -> list:
     return records
 
 
-
-if __name__ == "__main__":
-    logging.basicConfig(filename="Logs/file_names.errors", encoding="utf-8", level=logging.DEBUG)
-    FileRecord = namedtuple("FileRecord", ["artist", "song", "path"])
-    artist_song_paths = "MetricsAndData/artist_song_paths.pickle"
-    file_block = "Databases/data9"
-
-
+def load_file_records(file_name: str) -> set:
+    """Loads FileRecords from 'file_name'."""
     # Ensure the file exists
-    if not Path(artist_song_paths).exists():
-        Path(artist_song_paths).touch()
+    if not Path(file_name).exists():
+        Path(file_name).touch()
 
     # Load the prior pickled data
     # if the file is empty, start by making a set
     try:
-        records = load_pickle(artist_song_paths)
+        records = load_pickle(file_name)
     except EOFError:
         records = set()
     
     # Convert pickled list into set of FileRecord types (my convention)
     if records:
         records = set([FileRecord(record[0], record[1], record[2]) for record in records])
+    return records
 
+
+
+if __name__ == "__main__":
+    logging.basicConfig(filename="Logs/file_names.errors", encoding="utf-8", level=logging.DEBUG)
+    artist_song_paths = "Databases/artist_song_paths.pickle"
+    file_block = "Databases/data9"
+
+    # Load FileRecord Set
+    records = load_file_records(artist_song_paths)
 
     # Create records from the collection of lyrics files
     records = create_file_records_from_dir(file_block, records)
@@ -78,3 +83,4 @@ if __name__ == "__main__":
     #NOTE: Record needs __reduce__ method to make it picklable
     records = [(record.artist, record.song, record.path) for record in records]
     pickle_file_records(artist_song_paths, records)   # Good
+    print("Record example:", records[0])

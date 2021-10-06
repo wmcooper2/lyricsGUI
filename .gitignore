@@ -5,13 +5,4 @@ tars
 results
 support
 *.swp
-Databases/data9
-Databases/*.csv
-Databases/*.pickle
-Databases/*.gz
-Databases/*.tar
-Databases/*.tar.gz
-Databases/lyrics.db
-Databases/githubdemo.db
-Databases/lyricsBackup.db
-Databases/top100.db
+Databases/
