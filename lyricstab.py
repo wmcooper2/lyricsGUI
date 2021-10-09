@@ -70,7 +70,8 @@ class LyricsTab(tk.Frame):
             view_now = messagebox.askyesno(title="Show Results?", message=f"There are {amt} results. Viewing all of them at once may slow down your computer. Do you want to view all of them now?")
             if view_now:
                 #TODO: make this threaded
-                artist_songs = [(record[1], record[2])for record in self.regex_results]
+                name_pairs = [pathlib.Path(record.file).stem.split("_") for record in self.regex_results]
+                artist_songs = [(pair[0], pair[1]) for pair in name_pairs]
                 self.show_songs(artist_songs)
 
 
@@ -150,21 +151,20 @@ class LyricsTab(tk.Frame):
 
     def handle_results_click(self, option: str) -> None:
         """Load the selected song's lyrics into the lyrics box."""
+        breakpoint()
         selection = None
         index = self.results.list_.curselection()
         try:
             selection = option.widget.get(index)
         except tk.TclError:
-            #TODO: log error?
-            raise Exception("Error: tkinter problem with what you just clicked") from None
-
+            logging.debug(f"TypeError: handle_results_click(), {selection}")
         song = None
         artist = None
         if selection:
             try:
                 song_match = re.match('\".*?\"', selection)
             except TypeError:
-                #TODO: log error?
+                logging.debug(f"TypeError: handle_results_click(), couldn't extract song_name from quotes, {selection}")
                 song_match = None
 
         if song_match:
@@ -201,8 +201,6 @@ class LyricsTab(tk.Frame):
                 match = self.regex.search(f.read())
             except TypeError:
                 logging.debug(f"TypeError: {file_}")
-#             if match:
-#                 print(match, file_)
         #TODO: fix the increment
         self._increment_progress()
         return FileMatch(file_, match)
@@ -430,7 +428,6 @@ class LyricsTab(tk.Frame):
     @timing
     def thread_manager(self, limit: int, regex: re.Pattern):
         """Main search thread."""
-        print("Started Thread Mangager")
         self.regex = regex
         results = set()
 
@@ -438,12 +435,10 @@ class LyricsTab(tk.Frame):
         root_dir = "/Volumes/SILVER256"
         dirs = [f"{root_dir}/data{str(num)}" for num in range(1, 10)]
         files = list(pathlib.Path(dirs[0]).iterdir())
-        print(f"File count: {len(files)}")
 
 #         while self.index < limit and not self.cancel_flag:
         with concurrent.futures.ThreadPoolExecutor() as executor:
             futures = {executor.submit(self.regex_search, file_) for file_ in files}
-            print(f"Added tasks: {len(futures)}")
             for future in concurrent.futures.as_completed(futures):
                 result = None
                 try:
@@ -454,9 +449,7 @@ class LyricsTab(tk.Frame):
                     results.add(result)
                     self.regex_results.append(result)
 
-        print(f"The outcome is {results}") # set of re.Match objects
         result_count = len(self.regex_results)
-        print(f"result_count: {result_count}")
         self._stop_progress_bar()
         self._reset_cancel_flag()
 #         self._update_progress_label(f"Search completed in {round(time_taken, 3)} minutes. {result_count} matches found.")
@@ -488,14 +481,12 @@ class LyricsTab(tk.Frame):
             logging.debug(f"RuntimeError, {word_search.__name__}(): pattern={pattern}")
             #TODO, figure out the use of "from None" in exception handling to return just the most recent exception traceback
 #         except Exception as e from None
-#             print("Error: thread_manager()")
 
 
     def quit_gui(self) -> None:
         """Quit the program."""
         #shut down any running threads
         self.cancel_flag = True
-#         print(Results.list_items.get())
         # threads.join() ?
         quit()
 
@@ -531,7 +522,6 @@ class LyricsTab(tk.Frame):
             #TODO: 
             if result.endswith("True"):
                 final_seq = result.rstrip("True")
-#                 print(f"final_seq: {final_seq}")
                 return True
             else:
                 return False
@@ -545,7 +535,6 @@ class LyricsTab(tk.Frame):
                     words = words.split(" ")
                     #TODO: remove punct from words and lyrics? 
                     answer = self.distant_neighboring_words(lyrics, words, gap)
-#                     print(f"Gap Search; result: {answer}, artist: {artist}, song: {song}")
                     return _gap_search_result(answer)
         return []
 

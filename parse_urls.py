@@ -239,6 +239,17 @@ def pickle_file_records(file_name: str, data: list) -> None:
 
 
 
+@timing
+def run_threads(files: list, funct):
+    results = set()
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        futures = {executor.submit(funct, task) for task in files}
+        for future in concurrent.futures.as_completed(futures):
+            results.add(tuple(future.result()))
+    print(f"The outcome is {results}")
+
+
+
 
 if __name__ == "__main__":
     logging.basicConfig(filename="Logs/urlparser.log", encoding="utf-8", level=logging.DEBUG)

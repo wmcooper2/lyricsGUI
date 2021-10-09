@@ -2,19 +2,27 @@
 import re
 import sqlite3
 
+DEBUG = True
+if DEBUG:
+    DB = "demo"
+    TABLE = "demo"
+else:
+    DB = "lyrics"
+    TABLE = "songs"
+
 # csv.field_size_limit(sys.maxsize)  # Increase field size limit
 ################################################################################
 #   Demo DB
 ################################################################################
 def connect():
-    con = sqlite3.connect("Databases/demo.db")
+    con = sqlite3.connect(f"Databases/{DB}.db")
     cur = con.cursor()
     return cur, con
 
 #TODO: replaced with song_query()?
 def artist(name: str) -> list:
     cur, con = connect()
-    cur.execute('SELECT song FROM demo WHERE artist=?', (name,))
+    cur.execute(f"SELECT song FROM {TABLE} WHERE artist=?", (name,))
     results = cur.fetchall()
     close_connection(cur, con)
     return [r[0] for r in results]
@@ -23,7 +31,7 @@ def artist(name: str) -> list:
 def artist_query(name: str) -> list:
     """Get all artists who have a song 'name'."""
     cur, con = connect()
-    cur.execute('SELECT artist,song FROM demo WHERE song=?', (name,))
+    cur.execute(f"SELECT artist,song FROM {TABLE} WHERE song=?", (name,))
     results = cur.fetchall()
     close_connection(cur, con)
     return results
@@ -32,7 +40,7 @@ def artist_query(name: str) -> list:
 #TODO: replaced with song_query()?
 def artist2(name: str) -> list:
     cur, con = connect()
-    cur.execute('SELECT artist,song FROM demo WHERE artist=?', (name,))
+    cur.execute(f"SELECT artist,song FROM {TABLE} WHERE artist=?", (name,))
     results = cur.fetchall()
     close_connection(cur, con)
     return results
@@ -40,7 +48,7 @@ def artist2(name: str) -> list:
 
 def artists() -> list:
     cur, con = connect()
-    cur.execute('SELECT DISTINCT artist FROM demo')
+    cur.execute(f"SELECT DISTINCT artist FROM {TABLE}")
     result = cur.fetchall()
     close_connection(cur, con)
     return result
@@ -57,7 +65,7 @@ def artists() -> list:
 def artist_and_song(artist: str, song: str) -> str:
     """Returns the lyrics of a song by a specific artist."""
     cur, con = connect()
-    cur.execute('SELECT lyrics FROM demo WHERE artist=? AND song=?', (artist, song))
+    cur.execute(f"SELECT lyrics FROM {TABLE} WHERE artist=? AND song=?", (artist, song))
     results = cur.fetchall()
     close_connection(cur, con)
     try:
@@ -69,7 +77,7 @@ def artist_and_song(artist: str, song: str) -> str:
 def index_search(index: int, step: int) -> list:
     """Search for records starting at 'index'."""
     cur, con = connect()
-    cur.execute('SELECT * FROM demo WHERE id>=? AND id<=?', (index, index+step))
+    cur.execute(f"SELECT * FROM {TABLE} WHERE id>=? AND id<=?", (index, index+step))
     records = cur.fetchall()
     close_connection(cur, con)
     return records
@@ -79,7 +87,7 @@ def index_search(index: int, step: int) -> list:
 def fuzzy_artist(artist: str) -> list:
     """Fuzzy search of 'artist'. Returns songs written by 'artist'."""
     cur, con = connect()
-    sql_statement = f"SELECT artist,song FROM demo WHERE LOWER(artist)='{artist.lower()}'"
+    sql_statement = f"SELECT artist,song FROM {TABLE} WHERE LOWER(artist)='{artist.lower()}'"
     cur.execute(sql_statement)
     results = cur.fetchall()
     close_connection(cur, con)
@@ -89,7 +97,7 @@ def fuzzy_artist(artist: str) -> list:
 def fuzzy_artist_and_song(artist: str, song: str) -> str:
     """Fuzzy search for a 'song' by an 'artist'. Returns the lyrics."""
     cur, con = connect()
-    sql_statement = f"SELECT lyrics FROM demo WHERE LOWER(artist)='{artist.lower()}' AND LOWER(song)='{song.lower()}'"
+    sql_statement = f"SELECT lyrics FROM {TABLE} WHERE LOWER(artist)='{artist.lower()}' AND LOWER(song)='{song.lower()}'"
     cur.execute(sql_statement)
     results = cur.fetchall()
     close_connection(cur, con)
@@ -102,22 +110,23 @@ def fuzzy_artist_and_song(artist: str, song: str) -> str:
 def fuzzy_song(song: str) -> list:
     """Fuzzy search for 'song'. Returns list of artists and the song."""
     cur, con = connect()
-    sql_statement = f"SELECT artist,song FROM demo WHERE LOWER(song)='{song.lower()}'"
+    sql_statement = f"SELECT artist,song FROM {TABLE} WHERE LOWER(song)='{song.lower()}'"
     cur.execute(sql_statement)
     results = cur.fetchall()
     close_connection(cur, con)
     return results
 
 
+#TODO: rename to be more flexible with the debug choice at the top of this module
 def populate_db_with_demo_data() -> None:
     """Inserts about 60000 songs into the database"""
     counter = 0
-    with open("Databases/demo.csv", "r") as f:
+    with open(f"Databases/{DB}.csv", "r") as f:
         data = csv.reader(f, delimiter="|")
         for row in data:
             print("data row:", row)
             row = [counter] + row
-            cur.execute("""INSERT INTO songs VALUES(?, ?, ?, ?)""", row)
+            cur.execute("""INSERT INTO {TABLE} VALUES(?, ?, ?, ?)""", row)
             counter += 1
             print(counter, end="\r")
 
@@ -125,7 +134,7 @@ def populate_db_with_demo_data() -> None:
 def song_query(artist: str) -> list:
     """Get all songs from 'artist'."""
     cur, con = connect()
-    cur.execute('SELECT artist,song FROM demo WHERE artist=?', (artist,))
+    cur.execute(f"SELECT artist,song FROM {TABLE} WHERE artist=?", (artist,))
     results = cur.fetchall()
     close_connection(cur, con)
     return results
@@ -137,8 +146,8 @@ def song_query(artist: str) -> list:
 #TODO, test
 def mp_record_check(artist: str, song: str) -> bool:
     """Checks if a record exists in the database """
-    cur, con = connect_to("Databases/lyrics.db")
-    cur.execute('SELECT artist FROM songs WHERE artist=? AND song=?', (artist, song))
+    cur, con = connect_to(f"Databases/{DB}.db")
+    cur.execute(f"SELECT artist FROM {TABLE} WHERE artist=? AND song=?", (artist, song))
     results = cur.fetchall()
     close_connection(cur, con)
     return bool(results)
@@ -147,8 +156,8 @@ def mp_record_check(artist: str, song: str) -> bool:
 #TODO, test
 def all_artists_and_songs() -> list:
     """Get all records' artist and song fields."""
-    cur, con = connect_to("Databases/lyrics.db")
-    cur.execute('SELECT * FROM songs;')
+    cur, con = connect_to(f"Databases/{DB}.db")
+    cur.execute(f"SELECT * FROM {TABLE}")
     records = cur.fetchall()
     close_connection(cur, con)
     return records
@@ -156,7 +165,7 @@ def all_artists_and_songs() -> list:
 
 def record_check(artist: str, song: str, cur: sqlite3.Cursor) -> bool:
     """Checks if a record exists in the database """
-    cur.execute('SELECT artist FROM songs WHERE artist=? AND song=?', (artist, song))
+    cur.execute(f"SELECT artist FROM {TABLE} WHERE artist=? AND song=?", (artist, song))
     results = cur.fetchall()
     return bool(results)
 
@@ -184,8 +193,8 @@ def record_count(db: str="demo") -> int:
     if db == "demo":
         cur, con = connect()
     else:
-        cur, con = connect_to("Databases/lyrics.db")
-    sql_statement = f'SELECT COUNT(*) FROM {db}'
+        cur, con = connect_to(f"Databases/{DB}.db")
+    sql_statement = f"SELECT COUNT(*) FROM {DB}"
     cur.execute(sql_statement)
     result = cur.fetchall()[0][0]
     close_connection(cur, con)
@@ -193,7 +202,7 @@ def record_count(db: str="demo") -> int:
 
 
 def init_db_table(cur: sqlite3.Cursor) -> None:
-    cur.execute("""CREATE TABLE IF NOT EXISTS songs(id INTEGER PRIMARY KEY AUTOINCREMENT, artist TEXT NOT NULL, song TEXT NOT NULL, lyrics TEXT NOT NULL)""")
+    cur.execute(f"CREATE TABLE IF NOT EXISTS {TABLE}(id INTEGER PRIMARY KEY AUTOINCREMENT, artist TEXT NOT NULL, song TEXT NOT NULL, lyrics TEXT NOT NULL)")
 
 
 def get_highest_db_index(cur: sqlite3.Cursor, table: str) -> int:

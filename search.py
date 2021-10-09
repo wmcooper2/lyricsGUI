@@ -80,6 +80,7 @@ class Search(tk.Frame):
         self.button = ttk.Button(self.root, text="Search", command=master.search)
         self.button.grid(row=2, column=10, columnspan=10)
 
+        #TODO, change the maximum of the progress_bar
         self.progress = tk.IntVar()
         self.progress_label = ttk.Label(self.root, text="Searching for: Nothing yet...")
         self.progress_label.configure(font="Helvetica 12 italic")

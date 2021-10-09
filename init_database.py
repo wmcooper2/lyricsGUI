@@ -1,12 +1,14 @@
 #std lib
 import logging
 from pathlib import Path
+from pprint import pprint
 import sqlite3
 import sys
 
 #custom
 import db_util
-import parse_urls as parser
+import parse_urls as urlparser
+import parse_files as fileparser
 
 
 def add_data_block_to_db(block: str, records: list, cur: sqlite3.Cursor, index: int=1) -> None:
@@ -34,22 +36,36 @@ def add_data_block_to_db(block: str, records: list, cur: sqlite3.Cursor, index: 
     print()
 
 if __name__ == "__main__":
+    artist_song_paths = "Databases/artist_song_paths.pickle"
     base_name = "lyrics_2021-10-03"
     logging.basicConfig(filename=f"Logs/{base_name}.errors", encoding="utf-8", level=logging.DEBUG)
     # db_util.populate_db_with_demo_data()
-    cur, con = db_util.connect_to(f"Databases/{base_name}.db")
+#     cur, con = db_util.connect_to(f"Databases/{base_name}.db")
+
+    cur, con = db_util.connect()
     db_util.init_db_table(cur)
+    paths = fileparser.all_file_paths()
+    records = fileparser.artist_song_from_paths(paths)
 
-    records = parser.load_pickle("Databases/artist_song_file_names.pickle")
+    # pickle those records
+    fileparser.pickle_file_records(artist_song_paths, records)
+    db_util.close_connection(cur, con)
 
-    #start here
-    # get max index of last db entry
-    index = db_util.get_highest_db_index(cur, "songs")
-    if index is None:
-        index = 1
+    # load pickle test
+    records = urlparser.load_pickle(artist_song_paths)
+    pprint(records[:10])
+    pprint(records[-10:])
+    #conclusion: all but a few of the 600,000+ files have been created as FileRecords and pickled
+
+#     records = parser.load_pickle("Databases/artist_song_file_names.pickle")
+#     #start here
+#     # get max index of last db entry
+#     index = db_util.get_highest_db_index(cur, "songs")
+#     if index is None:
+#         index = 1
 #         raise Exception("Error: is the table empty? The index should not be 0 otherwise.")
 #         quit()
-
-    add_data_block_to_db("Databases/data9", records, cur, index)
-    db_util.close_connection(cur, con)
+# 
+#     add_data_block_to_db("Databases/data9", records, cur, index)
+#     db_util.close_connection(cur, con)
 
