@@ -201,21 +201,22 @@ if __name__ == "__main__":
     file_block = "Databases/data9"
 
     # Load FileRecord Set
-    records = load_file_records(artist_song_paths)
-
-    # Create records from the collection of lyrics files
-    records = create_file_records_from_dir(file_block, records)
-
-    # Pickle the records
-    # Convert to list of tuples
-    #NOTE: Record needs __reduce__ method to make it picklable
-    records = [(record.artist, record.song, record.path) for record in records]
-    pickle_file_records(artist_song_paths, records)   # Good
-    print("Record example:", records[0])
+#     records = load_file_records(artist_song_paths)
+#     records = create_file_records_from_dir(file_block, records)
 
     #Concurrency
-    print("Threaded Results:")
-    paths = all_file_paths()
-    run_threads(paths, thread_get_file_name)
-    run_threads(paths, thread_count_words)
+#     print("Threaded Results:")
+#     paths = all_file_paths()
+#     run_threads(paths, thread_get_file_name)
+#     run_threads(paths, thread_count_words)
     # conclusion: these two functions prove that the files can be reached, opened and tokenized
+
+    #Pickling
+#     paths = fileparser.all_file_paths()
+#     records = fileparser.artist_song_from_paths(paths)
+#     fileparser.pickle_file_records(file_records, records)
+#     records = urlparser.load_pickle(file_records)
+#     pprint(records[:10])
+#     pprint(records[-10:])
+    #conclusion: all but a few of the 600,000+ files have been created as FileRecords and pickled
+

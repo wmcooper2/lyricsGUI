@@ -1,5 +1,4 @@
 """This module is meant to improve the parsing of artists and songs from the urls in order to fix the 'missing ending "t"' problem with earlier attempts."""
-
 # std lib
 from collections import namedtuple, defaultdict
 import logging
@@ -12,12 +11,13 @@ import re
 import sqlite3
 import sys
 import time
+from typing import List, Text
 import urllib.parse as parser
 
 # custom
 import db_util
 
-Record = namedtuple("Record", ["artist", "song", "url"])
+URLRecord = namedtuple("URLRecord", ["artist", "song", "url"])
 
 
 def timing(function):
@@ -30,7 +30,7 @@ def timing(function):
     return wrapper
 
 
-def artist_song_from_url(url: str) -> Record:
+def artist_song_from_url(url: str) -> URLRecord:
     """Create a Record from the 'url'."""
     url = url.rstrip()
     normalized = parser.unquote_plus(url)  # convert from % to characters)
@@ -39,7 +39,7 @@ def artist_song_from_url(url: str) -> Record:
     end = match.end()
     end_part = normalized[end:]
     artist, song = end_part.split("/")
-    return Record(artist, song, url)
+    return URLRecord(artist, song, url)
 #     return (artist, song, url)
 
 
@@ -60,7 +60,7 @@ def record_creation_errors():
 
 @timing
 def check_db_for_errors(urls: list) -> None:
-    cur, con = db_util.connect_to("Databases/lyrics.db")
+    cur, con = db_util.lyrics_db()
     errors = []
     error_count = 0
     for index, url in enumerate(urls):
@@ -90,8 +90,8 @@ def create_records(urls: list):
         yield artist_song_from_url(url)
 
 
-# def mp_info(record: Record, errors: list, error_count: int):
-def mp_info(record: Record, lock: mp.Lock, index: int):
+# def mp_info(record: URLRecord, errors: list, error_count: int):
+def mp_info(record: URLRecord, lock: mp.Lock, index: int):
     """A multiprocess intended record lookup."""
     result = db_util.mp_record_check(record.artist, record.song)
     if not result:
@@ -105,7 +105,7 @@ def mp_info(record: Record, lock: mp.Lock, index: int):
 @timing
 def mp_check_db_for_errors(urls: list) -> None:
     """A multiprocess intended db error check."""
-#     cur, con = db_util.connect_to("Databases/lyrics.db")
+#     cur, con = db_util.lyrics_db()
     errors = mp.Array("B", [10000])
     error_count = mp.Value("i", 0)
     q = mp.Queue()
@@ -153,9 +153,8 @@ def mp_check_db_for_errors(urls: list) -> None:
 #     pool.terminate()
 
 
-def load_urls() -> list:
-    input_file = "support/songs.txt"
-    with open(input_file, "r") as f:
+def load_urls(file_name: Text) -> List[Text]:
+    with open(file_name, "r") as f:
         return f.readlines()
 
 
@@ -163,7 +162,7 @@ def parse_unique_records(urls: list) -> list:
     unique_records = set()          
     for index, url in enumerate(urls):
         record = artist_song_from_url(url)
-        unique_records.add(record)      #ex: Record(artist='!!! (Chk Chk Chk)', song='All U Writers', url='https://www.lyrics.com/lyric/32204994/%21%21%21+%28Chk+Chk+Chk%29/All+U+Writers')
+        unique_records.add(record)      #ex: URLRecord(artist='!!! (Chk Chk Chk)', song='All U Writers', url='https://www.lyrics.com/lyric/32204994/%21%21%21+%28Chk+Chk+Chk%29/All+U+Writers')
         print("Progress:", index, end="\r")
     unique_records = list(unique_records)
     unique_records.sort()
@@ -182,14 +181,14 @@ def artist_song_file_names(urls: list) -> list:
 
 
 def load_pickle(file_name: str) -> list:
-    f = open(file_name, "rb")
+    f = open(f"Databases/{file_name}.pickle", "rb")
     data = pickle.load(f)
     f.close()
     return data
 
 
-def pickle_records(records: list) -> None:
-    f = open("Databases/unique_records.pickle", "wb+")
+def pickle_records(file_name: Text, records: List[URLRecord]) -> None:
+    f = open(f"Databases/{file_name}.pickle", "wb+")
     pickle.dump(records, f)
     f.close()
 
@@ -252,19 +251,19 @@ def run_threads(files: list, funct):
 
 
 if __name__ == "__main__":
-    logging.basicConfig(filename="Logs/urlparser.log", encoding="utf-8", level=logging.DEBUG)
+    logging.basicConfig(filename="Logs/urlparser.errors", encoding="utf-8", level=logging.DEBUG)
     #Load Original URLS
-    urls = load_urls()
+    urls = load_urls("Databases/songs.txt")
 
     #Parse URLS
-#     records = parse_unique_records(urls)              # Good
+    unique_records = parse_unique_records(urls)              # Good
 
     #Save Unique Artist_Song filenames to text file
-    file_names = artist_song_file_names(urls)                                 # Good
-    save_text_file("Databases/artist_song_file_names.txt", file_names)   # Good
+#     file_names = artist_song_file_names(urls)                                 # Good
+#     save_text_file("Databases/artist_song_file_names.txt", file_names)   # Good
 
     #Pickle Unique Artist_Song filenames
-    pickle_artist_song_file_names(file_names)                                 # Good
+#     pickle_artist_song_file_names(file_names)                                 # Good
 #     records = load_pickle("Databases/artist_song_file_names.pickle")     # Good
 #     print(records[1000:1010])
     
@@ -274,9 +273,11 @@ if __name__ == "__main__":
 #     record_creation_errors()                          # Good
 
     #Pickle Records
-#     pickle_records(unique_records)
-#     records = load_pickle("Databases/unique_records.pickle")     # Good
-#     print("Loaded Pickle:", records[10000:10010])
+    pickle_name = "url_records"
+    pickle_records(pickle_name, unique_records)
+    records = load_pickle(pickle_name)     # Good
+    print("Loaded Pickle:")
+    pprint(records[:10])
 
     #Pickle Unique Artists
 #     pickle_artists(urls)                                              # Good

@@ -12,8 +12,8 @@ class Search(tk.Frame):
         super().__init__()
 
         self.fuzzy = False
-        self.song_count = record_count()
-        self.artist_count = artists()
+        self.song_count = record_count("Databases/lyrics.db", "songs")
+        self.artist_count = artists("songs")
 
 #         self.root = ttk.LabelFrame(master, text="Search")
         self.root = ttk.Frame(master)

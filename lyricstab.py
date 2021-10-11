@@ -151,7 +151,6 @@ class LyricsTab(tk.Frame):
 
     def handle_results_click(self, option: str) -> None:
         """Load the selected song's lyrics into the lyrics box."""
-        breakpoint()
         selection = None
         index = self.results.list_.curselection()
         try:
@@ -173,7 +172,7 @@ class LyricsTab(tk.Frame):
             # drop string through quotes
             by = " by "
             artist = selection[song_match.end()+len(by):]
-            lyrics = artist_and_song(artist, song)
+            lyrics = artist_and_song("Databases/lyrics.db", "songs", artist, song)
             self.show_lyrics(lyrics)
 
 
@@ -325,18 +324,18 @@ class LyricsTab(tk.Frame):
         elif not w and s and not a:
             artists = None
             if fuzzy:
-                artists = fuzzy_song(s)
+                artists = fuzzy_song("Databases/lyrics.db", "songs", s)
             else:
-                artists = artist_query(s)
+                artists = artist_query("Databases/lyrics.db", "songs", s)
             if artists:
                 self.show_songs(artists)
 
         #  a: load all songs written by that artist
         elif not w and not s and a:
             if fuzzy:
-                songs = fuzzy_artist(a)
+                songs = fuzzy_artist("Databases/lyrics.db", "songs", a)
             else:
-                songs = artist2(a)
+                songs = artist2("songs", a)
             self.show_songs(songs)
 
         #none, no input was given
@@ -432,8 +431,10 @@ class LyricsTab(tk.Frame):
         results = set()
 
         #TODO, need files
-        root_dir = "/Volumes/SILVER256"
-        dirs = [f"{root_dir}/data{str(num)}" for num in range(1, 10)]
+#         root_dir = "/Volumes/SILVER256"
+        root_dir = "/Volumes/BLACK1000/_DATA/LYRICS/lyricsGUI"
+        dirs = [f"{root_dir}/data{str(num)}" for num in range(1, 17)]
+        print("dirs_:", dirs)
         files = list(pathlib.Path(dirs[0]).iterdir())
 
 #         while self.index < limit and not self.cancel_flag:
