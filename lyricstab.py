@@ -16,7 +16,9 @@ from tkinter import messagebox
 from typing import Any, Optional
 
 #custom
+# from gui.py import App    #circular import
 from db_util import (
+        all_artists_and_songs,
         artist2,
         artist_query,
         artist_and_song,
@@ -41,6 +43,7 @@ def timing(function):
     return wrapper
 
 
+# class LyricsTab(tk.Frame, App):
 class LyricsTab(tk.Frame):
 
     #TODO, make the list box accessible through @classmethod?
@@ -51,13 +54,12 @@ class LyricsTab(tk.Frame):
         self.search = Search(self)
         self.results = Results(self)
 
+        #TODO: make regex results a class attribute in Results
+        # it should be accessible everywhere for reading and have the same data everywhere
         self.regex_results = []
         self.index = 0
         self.step = 100
         self.regex = None
-
-        # conveniences
-        self.search.artist.focus()
 
         # Quit button
         self.quit_btn = ttk.Button(self, text="Quit", command=self.quit_gui)
@@ -75,30 +77,25 @@ class LyricsTab(tk.Frame):
                 self.show_songs(artist_songs)
 
 
-    def _clear_search_entry(self) -> None:
-        self.search.words["text"] = " "
+    def reset_search(self) -> None:
+        self.search.reset()
+#     def reset_results(self) -> None:
+#         self.results.reset()
+    
+    def clear_list(self) -> None:
+        self.results.reset_list()
+
+    def clear_lyrics(self) -> None:
+        self.results.reset_lyrics()
 
 
-    def _clear_results_list(self) -> None:
-        self.results.list_.delete(0, tk.END)
-
-
-    def _clear_lyrics(self) -> None:
-        self.results.lyrics.delete("1.0", tk.END)
-
-
+    #TODO, move to toggle fuzzy search?
     def _disable_word_entry(self) -> None:
         self.search.words.state(["disabled"])
-
-
     def _disable_word_gap_scale(self) -> None:
         self.search.slider.state(["disabled"])
-
-
     def _enable_word_entry(self) -> None:
         self.search.words.state(["!disabled"])
-
-
     def _enable_word_gap_scale(self) -> None:
         self.search.slider.state(["!disabled"])
 
@@ -106,10 +103,8 @@ class LyricsTab(tk.Frame):
     def _increment_progress(self) -> None:
         self.search.progress_bar.step(1)
 
-
     def _reset_cancel_flag(self) -> None:
         self.cancel_flag = False
-
 
     def _reset_index(self) -> None:
         self.index = 0
@@ -157,8 +152,8 @@ class LyricsTab(tk.Frame):
             selection = option.widget.get(index)
         except tk.TclError:
             logging.debug(f"TypeError: handle_results_click(), {selection}")
-        song = None
-        artist = None
+
+        song_match = None
         if selection:
             try:
                 song_match = re.match('\".*?\"', selection)
@@ -166,13 +161,15 @@ class LyricsTab(tk.Frame):
                 logging.debug(f"TypeError: handle_results_click(), couldn't extract song_name from quotes, {selection}")
                 song_match = None
 
+        song = None
+        artist = None
         if song_match:
             song = song_match.group(0)
             song = selection[1:song_match.end()-1]
             # drop string through quotes
             by = " by "
             artist = selection[song_match.end()+len(by):]
-            lyrics = artist_and_song("Databases/lyrics.db", "songs", artist, song)
+            lyrics = artist_and_song("songs", artist, song)
             self.show_lyrics(lyrics)
 
 
@@ -286,7 +283,7 @@ class LyricsTab(tk.Frame):
             if fuzzy:
                 lyrics = fuzzy_artist_and_song(a, s)
             else:
-                lyrics = artist_and_song(a, s)
+                lyrics = artist_and_song("songs", a, s)
 
             if lyrics:
                 self.show_songs([(a, s)])
@@ -378,9 +375,9 @@ class LyricsTab(tk.Frame):
         """Search for 'pattern' with max 'gap' between any pairs of neighboring words in 'pattern' through all lyrics."""
         #set up the gui for threaded search
         self._update_progress_label(f"Searching for: '{pattern}'...")
-        self._clear_lyrics()
-        self._clear_results_list()
-        self._clear_search_entry()
+        self.clear_lyrics()
+        self.clear_list()
+        self.reset_search()
         self._disable_word_entry()
         self._disable_word_gap_scale()
         self.regex_results = []
@@ -397,8 +394,8 @@ class LyricsTab(tk.Frame):
 
     def show_songs(self, data: list) -> None:
         """Load the song and artist results into the list box."""
-        self._clear_lyrics()
-        self._clear_results_list()
+        self.clear_lyrics()
+        self.clear_list()
 
         if len(data) > 1:
             for index, record in enumerate(sorted(data, reverse=True)):
@@ -407,7 +404,7 @@ class LyricsTab(tk.Frame):
         elif len(data) == 1:
             song, artist = data[0][1].title(), data[0][0].title()
             self._update_results_list(f'"{song}" by {artist}')
-            lyrics = artist_and_song(artist, song)
+            lyrics = artist_and_song("songs", artist, song)
             self.show_lyrics(lyrics)
         else:
             self._update_results_list(["No matching results."])
@@ -415,7 +412,7 @@ class LyricsTab(tk.Frame):
 
     def show_lyrics(self, data) -> None:
         """Load the lyrics results into the text box."""
-        self._clear_lyrics()
+        self.clear_lyrics()
         if data:
             self._update_lyrics_box(data)
         else:
@@ -432,10 +429,12 @@ class LyricsTab(tk.Frame):
 
         #TODO, need files
 #         root_dir = "/Volumes/SILVER256"
-        root_dir = "/Volumes/BLACK1000/_DATA/LYRICS/lyricsGUI"
-        dirs = [f"{root_dir}/data{str(num)}" for num in range(1, 17)]
-        print("dirs_:", dirs)
-        files = list(pathlib.Path(dirs[0]).iterdir())
+#         root_dir = "/Volumes/BLACK1000/_DATA/LYRICS/lyricsGUI"
+#         dirs = [f"{root_dir}/data{str(num)}" for num in range(1, 17)]
+#         print("dirs_:", dirs)
+        #TODO: replace with iterator over database results
+#         files = list(pathlib.Path(dirs[0]).iterdir())
+        files = all_artists_and_songs("songs")
 
 #         while self.index < limit and not self.cancel_flag:
         with concurrent.futures.ThreadPoolExecutor() as executor:
@@ -445,8 +444,9 @@ class LyricsTab(tk.Frame):
                 try:
                     result = future.result()
                 except TypeError as e:
-                    logging.debug(f"TypeError: {file_}")
-                if result.match:
+                    logging.debug("TypeError: Threading...")
+#                 if result.match:
+                if result is not None:
                     results.add(result)
                     self.regex_results.append(result)
 
@@ -465,9 +465,9 @@ class LyricsTab(tk.Frame):
         """Search for 'pattern' in all lyrics."""
         #set up the gui for threaded search
         self._update_progress_label(f"Searching for: '{pattern}'...")
-        self._clear_lyrics()
-        self._clear_results_list()
-        self._clear_search_entry()
+        self.clear_lyrics()
+        self.clear_list()
+        self.reset_search()
         self._disable_word_entry()
         self._disable_word_gap_scale()
 

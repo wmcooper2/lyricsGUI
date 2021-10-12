@@ -7,13 +7,14 @@ from typing import List, Text, Tuple
 #custom
 import parse_urls as urlparser
 
+DATABASE = "Databases/lyrics.db"
 
 # csv.field_size_limit(sys.maxsize)  # Increase field size limit
 ################################################################################
 #   Demo DB
 ################################################################################
 def connect() -> Tuple[sqlite3.Cursor, sqlite3.Connection]:
-    con = sqlite3.connect("Databases/lyrics.db")
+    con = sqlite3.connect(DATABASE)
     cur = con.cursor()
     return cur, con
 
@@ -60,7 +61,7 @@ def artists(table: Text) -> List:
 #     return result
 
 
-def artist_and_song(database: Text, table: Text, artist: Text, song: Text) -> Text:
+def artist_and_song(table: Text, artist: Text, song: Text) -> Text:
     """Returns the lyrics of a song by a specific artist."""
     cur, con = connect()
     cur.execute(f"SELECT lyrics FROM {table} WHERE artist=? AND song=?", (artist, song))
@@ -152,7 +153,8 @@ def mp_record_check(artist: Text, song: Text) -> bool:
 
 
 #TODO, test
-def all_artists_and_songs(database: Text, table: Text) -> List:
+# def all_artists_and_songs(database: Text, table: Text) -> List:
+def all_artists_and_songs(table: Text) -> List:
     """Get all records' artist and song fields."""
     cur, con = lyrics_db()
     cur.execute(f"SELECT * FROM {table}")
@@ -172,7 +174,7 @@ def record_check(table: Text, artist: Text, song: Text, cur: sqlite3.Cursor) -> 
 #   Shared Functions
 ################################################################################
 def lyrics_db():
-    con = sqlite3.Connection("Databases/lyrics.db")
+    con = sqlite3.Connection(DATABASE)
     cur = con.cursor()
     return cur, con
 

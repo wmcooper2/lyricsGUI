@@ -1,6 +1,7 @@
 #std lib
 import logging
 import tkinter as tk
+from tkinter import messagebox
 from tkinter import ttk
 
 #custom
@@ -19,7 +20,6 @@ class App(tk.Tk):
 #         self.youtube_tab = YouTubeTab(self.notebook)
         self.notebook.add(self.lyrics_tab, text="Lyrics")
 #         self.notebook.add(self.youtube_tab, text="YouTube")
-
 
 if __name__ == "__main__":
     frame_padding = {"padx": 10, "pady": 10}

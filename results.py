@@ -39,4 +39,21 @@ class Results(tk.Frame):
         self.lyrics.grid(row=0, column=0, sticky=tk.E+tk.W+tk.N+tk.S, padx=5, pady=5)
         self.lyrics.tag_configure("highlight", background="yellow", foreground="black")
 
+    def _clear_results_list(self) -> None:
+        self.list_.delete(0, tk.END)
+
+    def _clear_results_list(self) -> None:
+        self.list_.delete(0, tk.END)
+
+    def _clear_lyrics(self) -> None:
+        self.lyrics.delete("1.0", tk.END)
+
+    def reset(self) -> None:
+        self._clear_results_list()
+
+    def reset_list(self) -> None:
+        self._clear_results_list()
+
+    def reset_lyrics(self) -> None:
+        self._clear_lyrics()
 

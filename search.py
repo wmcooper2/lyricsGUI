@@ -88,6 +88,13 @@ class Search(tk.Frame):
         self.progress_bar = ttk.Progressbar(self.root, length=800, maximum=self.song_count, mode="determinate", variable=self.progress)
         self.progress_bar.grid(row=2, column=0, columnspan=9)
 
+        # conveniences
+        self.artist.focus()
+
+
+    def _clear_search_entry(self) -> None:
+        self.words["text"] = " "
+
     def update_scale(self, value):
         self.slider_var = value
         self.slider_label["text"] = f"Word gap: {int(float(value))}"
@@ -99,3 +106,4 @@ class Search(tk.Frame):
     def enable_fuzzy_search(self):
         self.fuzzy = True
         self.slider.state(["!disabled"])
+
