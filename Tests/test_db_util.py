@@ -64,7 +64,7 @@ class TestLyricsDB:
         assert len(result) == 66483
 
     def test_get_lyrics_with_artist_and_song_query(self, database, table):
-        result = db.artist_and_song(database, table, "The Bellas", "Toxic")
+        result = db.artist_and_song(table, "The Bellas", "Toxic")
         #NOTE: hacky workaround due to newline escaping issue in actual lyrics
         assert result[:10] == "Baby, can'"
         assert len(result) == 1387

@@ -39,7 +39,7 @@ def App():
 
 @pytest.fixture
 def lyrics():
-    return db.artist_and_song("Database/lyrics.db", "songs", Data.demo_artist_exact, Data.demo_song_exact)
+    return db.artist_and_song("songs", Data.demo_artist_exact, Data.demo_song_exact)
 
 
 def test_lyrics(lyrics):
