@@ -3,6 +3,7 @@ from collections import namedtuple
 import pathlib
 import re
 import tkinter as tk
+from tkinter import messagebox
 from tkinter import ttk
 from typing import Any, List, Text
 
@@ -14,6 +15,7 @@ from results import Results
 
 
 FileMatch = namedtuple("FileMatch", ["file", "match"])
+Query = namedtuple("Query", ["artist", "song", "grammar"])
 
 def timing(function):
     """Timing decorator."""
@@ -29,6 +31,8 @@ class Search(tk.Frame):
     def __init__(self, master):
         super().__init__()
 
+        self.results = []
+        self.master = master
         self.fuzzy = False
         self.song_count = db_util.record_count("Databases/lyrics.db", "songs")
         self.artist_count = db_util.artists("songs")
@@ -105,8 +109,6 @@ class Search(tk.Frame):
         self.progress_label.grid(row=1, column=0, sticky=tk.W, padx=10)
         self.progress_bar = ttk.Progressbar(self.root, length=800, maximum=self.song_count, mode="determinate", variable=self.progress)
         self.progress_bar.grid(row=2, column=0, columnspan=9)
-
-        # conveniences
         self.artist.focus()
 
 
@@ -159,6 +161,98 @@ class Search(tk.Frame):
         self.slider.state(["!disabled"])
 
 
+    def exact_search(self, query: Query):
+        #match artist and song, then search for grammar
+        q = query
+        if q.artist and q.song and q.grammar:
+            lyrics = None
+            words = q.grammar.split(" ")
+            lyrics = db_util.artist_and_song(q.artist, q.song)
+            if lyrics:
+                #refactor
+                assert len(lyrics) == 1 # only 1, not more
+                match = re.search(q.grammar, lyrics)
+            self.show_lyrics(lyrics)
+            self.show_songs([(q.artist, q.song)])
+
+        #match songs, then search for grammar
+        elif not q.artist and q.song and q.grammar:
+            #TODO, this block not finished, need to search through grammar
+            songs = db_util.song_query(q.artist)
+
+        elif q.artist and not q.song and q.grammar:
+#                 artists = db_util.song_query(q.song)
+            songs = db_util.song_query(q.artist)
+            self.show_songs(songs)
+
+        #find artist and song
+        elif q.artist and q.song and not q.grammar:
+            lyrics = None
+            lyrics = db_util.artist_and_song("songs", q.artist, q.song)
+            if lyrics:
+                self.show_songs([(q.artist, q.song)])
+            else:
+                self.show_songs([])
+                self.show_lyrics(lyrics)
+
+        #search only for grammar in all songs
+        elif not q.artist and not q.song and q.grammar:
+            #TODO: rethink cancelling thread ability
+            search_in_progress = False
+            if search_in_progress:
+                cancel = self.ask_to_cancel_search()
+                if cancel:
+                    message = self.long_search_message()
+                    if message:
+                        self.word_search(q.grammar, self.song_count)
+            else:
+                message = self.long_search_message()
+                if message:
+                    self.word_search(q.grammar, self.song_count)
+
+        #search for all records with the same song name
+        elif not q.artist and q.song and not q.grammar:
+#             artists = None
+            artists = db_util.artist_query("Databases/lyrics.db", "songs", q.song)
+            if artists:
+                self.show_songs(artists)
+
+        #all songs by a sinlge artist
+        elif q.artist and not q.song and not q.grammar:
+            songs = db_util.artist2("songs", q.artist)
+            self.show_songs(songs)
+
+        #ask user to input anything
+        else:
+            self.input_something_message()
+
+        #creates loop
+#         self.master.show_songs(self.results)
+
+
+    def fuzzy_search(self, query: Query):
+        word_gap = self.slider.get()
+        q = query
+        if q.artist and q.song and q.grammar:
+            lyrics = db_uitl.fuzzy_artist_and_song(q.artist, q.song)
+        elif not q.artist and q.song and q.grammar:
+            artists = db_util.fuzzy_song(q.song)
+        elif q.artist and not q.song and q.grammar:
+            #doesn't make sense
+            artists = db_util.fuzzy_song(q.song)
+        elif q.artist and q.song and not q.grammar:
+            lyrics = db_uitl.fuzzy_artist_and_song(q.artist, q.song)
+        elif not q.artist and not q.song and q.grammar:
+            gap = self.slider.get()
+            self.fuzzy_word_search(q.grammar, self.song_count, gap)
+        elif not q.artist and q.song and not q.grammar:
+            artists = db_util.fuzzy_song("Databases/lyrics.db", "songs", q.song)
+        elif q.artist and not q.song and not q.grammar:
+            songs = db_util.fuzzy_artist("Databases/lyrics.db", "songs", q.artist)
+        else:
+            self.input_something_message()
+
+
     def fuzzy_thread_manager(self, pattern: str, limit: int, gap: int) -> None:
             """Main fuzzy-search thread."""
             #TODO: finish the threaded gap search
@@ -177,7 +271,7 @@ class Search(tk.Frame):
                 self.tick_progress()
             end_time = time.time()
             time_taken = (end_time - start_time) / 60
-            result_count = len(self.regex_results)
+            result_count = len(self.results)
             # reset the gui after the threaded search is finished
 #             self._stop_progress_bar()
             self.stop_search()
@@ -185,7 +279,7 @@ class Search(tk.Frame):
             self.update_progress_label(f"Search completed in {round(time_taken, 3)} minutes. {result_count} matches found.")
             self._reset_index()
             self.toggle_fuzzy_search()
-            self.save_results(pattern, self.regex_results)
+            self.save_results(pattern, self.results)
 #             self.show_results(result_count)
 
 
@@ -196,10 +290,8 @@ class Search(tk.Frame):
         self.clear_lyrics()
         self.clear_list()
         self.reset_search()
-#         self._disable_word_entry()
         self.toggle_fuzzy_search()
-#         self._disable_word_gap_scale()
-        self.regex_results = []
+        self.results = []
         self.cancel_flag = False
         self.index = 0
 #         print(f"fuzzy_word_search(): pattern={pattern}, limit={limit}, gap={gap}")
@@ -224,7 +316,7 @@ class Search(tk.Frame):
         #start here
         if words:
             gap = int(gap)
-            for i, artist, song, lyrics in index_search(self.index, self.step):
+            for i, artist, song, lyrics in db_util.index_search(self.index, self.step):
                 if lyrics is not None and words is not None:
                     lyrics = lyrics.split(" ")
                     words = words.split(" ")
@@ -247,13 +339,10 @@ class Search(tk.Frame):
                 match = self.regex.search(f.read())
             except TypeError:
                 logging.debug(f"TypeError: {file_}")
-        #TODO: fix the increment
-#         self._increment_progress()
         self.tick_progress()
         return FileMatch(file_, match)
 
 
-    #TODO: refactor
     def search(self) -> None:
         """Perform database query.
 
@@ -268,132 +357,21 @@ class Search(tk.Frame):
             Exact  
         """
 
-        # clear the listbox's contents
-#         self.results.list_.delete(0, tk.END)
         Results.delete_list()
         Results.delete_lyrics()
-#         self.results.lyrics.delete("1.0", tk.END)
 
-        # convienence vars
-        a = self.artist.get().strip()
-        s = self.song.get().strip()
-        w = self.words.get().strip()
+        artist = self.artist.get().strip()
+        song = self.song.get().strip()
+        grammar = self.words.get().strip()
 
         if self.fuzzy:
-            #get value of the word gap scale
-            word_gap = self.slider.get()
-
-        artist_results = None
-        song_results = None
-        lyrics_results = None
-
-        #TODO: finish fuzzy search option for word
-        #TODO: Need to add highlighting to lyrics... having some trouble here
-
-        #wsa: if that song by that artist exists, then highlight its lyrics
-        if w and s and a:
-            lyrics = None
-            words = w.split(" ")
-            if self.fuzzy:
-                lyrics = fuzzy_artist_and_song(a, s)
-            else:
-                lyrics = artist_and_song(a, s)
-
-            if lyrics:
-                assert len(lyrics) == 1
-                match = re.search(w, lyrics)
-                #TODO: self.results.highlight_lyrics(lyrics, words)
-            self.show_lyrics(lyrics)
-            self.show_songs([(a, s)])
-
-        #ws : load the song, then highlight its lyrics
-        elif w and s and not a:
-            if self.fuzzy:
-                #find all songs that are similar
-                artists = fuzzy_song(s)
-                #TODO: ...then tag the lyrics
-
-        #TODO: this one might be a little more involved...
-        #w a: load all the songs by the artist, then for each song highlight the matching words
-        elif w and not s and a:
-            if self.fuzzy:
-                #find all artists that are similar
-                artists = fuzzy_song(s)
-
-                #just load all the songs by the artist.
-                #when a song is clicked, grab the lyrics from the DB and add tags on the spot
-
-            else:
-#                 artists = song_query(s)
-                songs = song_query(a)
-                #TODO; when song clicked, grab the lyrics from the DB and add tags on the spot
-                self.show_songs(songs)
-
-        # sa: show lyrics for that song from that artist
-        elif not w and s and a:
-            lyrics = None
-            if self.fuzzy:
-                lyrics = fuzzy_artist_and_song(a, s)
-            else:
-                lyrics = artist_and_song("songs", a, s)
-
-            if lyrics:
-                self.show_songs([(a, s)])
-            else:
-                self.show_songs([])
-                self.show_lyrics(lyrics)
-
-        #w  : search for all the lyrics that contain that word
-        elif w and not s and not a:
-            if self.fuzzy:
-                #TODO: implement a word gap fuzzy lookup
-                # adapt self.word_search to call a thread with the gap argument
-                # for lyrics in DB:
-                    # search through each song for a match
-                    # if match, put song and artist in results list
-                gap = self.slider.get()
-                self.fuzzy_word_search(w, self.song_count, gap)
-
-            else:
-                #TODO, rethink cancelling a threaded word search
-#                 search_in_progress = self.button["text"] == "Cancel"
-                search_in_progress = False
-                if search_in_progress:
-                    cancel = self.ask_to_cancel_search()
-                    if cancel:
-                        message = self.long_search_message()
-                        if message:
-                            self.word_search(w, self.song_count)
-                else:
-                    message = self.long_search_message()
-                    if message:
-                        self.word_search(w, self.song_count)
-
-        # s : search for all artists who have written a song with the same name
-        elif not w and s and not a:
-            artists = None
-            if self.fuzzy:
-                artists = db_util.fuzzy_song("Databases/lyrics.db", "songs", s)
-            else:
-                artists = db_util.artist_query("Databases/lyrics.db", "songs", s)
-            if artists:
-                self.show_songs(artists)
-
-        #  a: load all songs written by that artist
-        elif not w and not s and a:
-            if self.fuzzy:
-                songs = db_util.fuzzy_artist("Databases/lyrics.db", "songs", a)
-            else:
-                songs = db_util.artist2("songs", a)
-            self.show_songs(songs)
-
-        #none, no input was given
+            self.fuzzy_search(Query(artist, song, grammar))
         else:
-            self.input_something_message()
-
+            self.exact_search(Query(artist, song, grammar))
 
     def show_songs(self, songs) -> None:
         # call to Results to show songs
+        self.master.show_songs(songs)
         print("show songs")
 
 
@@ -409,7 +387,7 @@ class Search(tk.Frame):
 #         print("dirs_:", dirs)
         #TODO: replace with iterator over database results
 #         files = list(pathlib.Path(dirs[0]).iterdir())
-        files = all_artists_and_songs("songs")
+        files = db_util.all_artists_and_songs("songs")
 #         while self.index < limit and not self.cancel_flag:
         with concurrent.futures.ThreadPoolExecutor() as executor:
             futures = {executor.submit(self.regex_search, file_) for file_ in files}
@@ -422,15 +400,15 @@ class Search(tk.Frame):
 #                 if result.match:
                 if result is not None:
                     results.add(result)
-                    self.regex_results.append(result)
-        result_count = len(self.regex_results)
+                    self.results.append(result)
+        result_count = len(self.results)
 #         self._stop_progress_bar()
         self.stop_search()
         self._reset_cancel_flag()
 #         self.update_progress_label(f"Search completed in {round(time_taken, 3)} minutes. {result_count} matches found.")
         self._reset_index()
         self.toggle_fuzzy_search()
-        self.save_results(regex.pattern, self.regex_results)
+        self.save_results(regex.pattern, self.results)
         self.show_results(result_count)
 
 
@@ -462,7 +440,7 @@ class Search(tk.Frame):
         self.reset_search()
         self.toggle_fuzzy_search()
         regex = re.compile(pattern)
-        self.regex_results = []
+        self.results = []
         self.cancel_flag = False
         try:
             # create main thread to manage the other threads

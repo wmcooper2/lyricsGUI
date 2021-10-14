@@ -8,23 +8,11 @@ from pprint import pprint
 import threading
 import time
 import tkinter as tk
-# from tkinter import filedialog
 from tkinter import ttk
 from tkinter import messagebox
 from typing import Any, List, Optional, Text
 
 #custom
-# from gui.py import App    #circular import
-from db_util import (
-        all_artists_and_songs,
-        artist2,
-        artist_query,
-        artist_and_song,
-        fuzzy_artist,
-        fuzzy_artist_and_song,
-        fuzzy_song,
-        index_search,
-        song_query)
 from results import Results
 from search import Search
 
@@ -40,7 +28,6 @@ class LyricsTab(tk.Frame):
 
         #TODO: make regex results a class attribute in Results
         # it should be accessible everywhere for reading and have the same data everywhere
-        self.regex_results = []
         self.index = 0
         self.step = 100
         self.regex = None

@@ -23,6 +23,7 @@ class Results(tk.Frame):
         self.root.grid(row=2, column=0, sticky=tk.E+tk.W)
         self.root.grid_columnconfigure(0, weight=1)  # allows expansion of columns and rows?
 
+        self.regex_results = []
         # TODO:text results frame
         self.search_results = [""]
         self.list_items = tk.StringVar(value=self.search_results)
@@ -167,8 +168,8 @@ class Results(tk.Frame):
 
     def show_songs(self, data: List) -> None:
         """Load the song and artist results into the list box."""
-        self.clear_lyrics()
-        self.clear_list()
+        self.reset_lyrics()
+        self.reset_list()
         if len(data) > 1:
             for index, record in enumerate(sorted(data, reverse=True)):
                 song, artist = record[1].title(), record[0].title()
@@ -187,6 +188,7 @@ class Results(tk.Frame):
     def show_results(self, data: List[Text]) -> None:
         if len(data) > 100:
             view_now = messagebox.askyesno(title="Show Results?", message=f"There are {len(data)} results. Viewing all of them at once may slow down your computer. Do you want to view all of them now?")
+#             breakpoint()
             if view_now:
                 #TODO: make this threaded
                 name_pairs = [pathlib.Path(record.file).stem.split("_") for record in self.regex_results]
