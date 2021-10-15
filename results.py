@@ -1,7 +1,11 @@
 #std lib
+from collections import namedtuple
 import csv
-import tkinter as tk
+import logging
+import pathlib
+from pprint import pprint
 import re
+import tkinter as tk
 from tkinter import ttk
 from tkinter import filedialog
 from tkinter import messagebox
@@ -11,10 +15,12 @@ from typing import Text, List
 #custom
 import db_util
 
+DisplayRecord = namedtuple("DisplayRecord", ["artist", "song"])
+logging.basicConfig(filename='Logs/errors.log', encoding='utf-8', level=logging.DEBUG)
+
 class Results(tk.Frame):
-    list_ = None
-    list_items = None
     lyrics = None
+    search_results = []
 
     def __init__(self, master):
         super().__init__()
@@ -23,14 +29,8 @@ class Results(tk.Frame):
         self.root.grid(row=2, column=0, sticky=tk.E+tk.W)
         self.root.grid_columnconfigure(0, weight=1)  # allows expansion of columns and rows?
 
-        self.regex_results = []
-        # TODO:text results frame
-        self.search_results = [""]
-        self.list_items = tk.StringVar(value=self.search_results)
-        Results.search_results = self.search_results
-        Results.list_items = self.list_items
-
         # song/artist results
+        self.list_items = tk.StringVar(value=Results.search_results)
         self.artist_song_results_frame = ttk.LabelFrame(self.root, text="Songs by Artist")
         self.artist_song_results_frame.grid(row=0, column=0, sticky=tk.E+tk.W+tk.N+tk.S)
         self.list_ = tk.Listbox(self.artist_song_results_frame, width=45, height=20, listvariable=self.list_items, selectmode=tk.SINGLE)
@@ -44,53 +44,32 @@ class Results(tk.Frame):
         self.lyrics_results_frame = ttk.LabelFrame(self.root, text="Lyrics")
         self.lyrics_results_frame.grid(row=0, column=1, sticky=tk.E+tk.W+tk.N+tk.S)
         self.lyrics = tk.scrolledtext.ScrolledText(self.lyrics_results_frame, height=25, width=60, wrap=tk.WORD)
-        Results.lyrics = self.lyrics
+#         Results.lyrics = self.lyrics
         self.lyrics.grid(row=0, column=0, sticky=tk.E+tk.W+tk.N+tk.S, padx=5, pady=5)
         self.lyrics.tag_configure("highlight", background="yellow", foreground="black")
 
 
     @classmethod
-    def delete_list(cls) -> None:
-        if cls.list_:
-            cls.list_.delete("1.0", tk.END)
+    def clear_results(cls) -> None:
+        if cls.search_results:
+            cls.search_results = []
 
     @classmethod
-    def delete_lyrics(cls) -> None:
+    def clear_lyrics(cls) -> None:
         if cls.lyrics:
             cls.lyrics.delete("1.0", tk.END)
 
 
-    def _clear_results_list(self) -> None:
-        self.list_.delete(0, tk.END)
-
-
-    def _clear_results_list(self) -> None:
-        self.list_.delete(0, tk.END)
-
-
-    def _clear_lyrics(self) -> None:
-        self.lyrics.delete("1.0", tk.END)
-
-
-    def _save_search_results(self, string: Text, data: List) -> None:
-        if self.ask_to_save(string):
-            save_file = filedialog.asksaveasfilename()
-            if save_file:
-                with open(save_file, "w+") as f:
-                    writer = csv.writer(f, delimiter="|")
-                    writer.writerows(data)
-
-
-    def _update_lyrics_box(self, data: List) -> None:
-        self.lyrics.insert("1.0", data)
-
-
-    def _update_results_list(self, data: List) -> None:
-        self.list_.insert(0, data)
-
-
     def ask_to_save(self, string: str) -> bool:
         return messagebox.askyesno(title="Save to File?", message=f"Search for '{string}' is complete. Would you like to save the results to a CSV file? You can reload the results into other programs like Excel.")
+
+
+    def clear_results_list(self) -> None:
+        self.list_.delete(0, tk.END)
+
+
+#     def _insert_into_results_list(self, song: Text, artist: Text) -> None:
+#         self.list_.insert(0, f"'{song}' by {artist}")
 
 
     def handle_results_click(self, option: str) -> None:
@@ -136,64 +115,57 @@ class Results(tk.Frame):
                 box.tag_add("highlight", start, end)
 
 
-    def long_search_message(self) -> bool:
-        """Displays 'yes/no' confirmation to user if the search may take a long time."""
-        return messagebox.askyesno(title="Word or Phrase Search", message="This may take up to 30 minutes. You may continue to use the program to search while waiting. The word entry field and word gap option will be disabled until the search is completed. A notification will appear when the search is finished. Are you sure you want to continue?")
-
-
     def reset(self) -> None:
-        self._clear_results_list()
-
-
-    def reset_list(self) -> None:
-        self._clear_results_list()
-
-
-    def reset_lyrics(self) -> None:
-        self._clear_lyrics()
+        Results.clear_results()
 
 
     def save_results(self, string: Text, data: List) -> None:
-        self._save_search_results(self, string, data)
+        if self.ask_to_save(string):
+            save_file = filedialog.asksaveasfilename()
+            if save_file:
+                with open(save_file, "w+") as f:
+                    writer = csv.writer(f, delimiter="|")
+                    writer.writerows(data)
 
 
     def show_lyrics(self, data) -> None:
         """Load the lyrics results into the text box."""
         self.reset_lyrics()
         if data:
-            self._update_lyrics_box(data)
+            self.update_lyrics_box(data)
         else:
-            self._update_lyrics_box(["No matching results."])
+            self.update_lyrics_box(["No matching results."])
 
 
-    def show_songs(self, data: List) -> None:
+    def show_results(self, records: List[DisplayRecord]) -> None:
         """Load the song and artist results into the list box."""
-        self.reset_lyrics()
-        self.reset_list()
-        if len(data) > 1:
-            for index, record in enumerate(sorted(data, reverse=True)):
-                song, artist = record[1].title(), record[0].title()
-#                 self.show_results(f'"{song}" by {artist}')
-                self.show_results(data)
-        elif len(data) == 1:
-            song, artist = data[0][1].title(), data[0][0].title()
-#             self.show_results(f'"{song}" by {artist}')
-            self.show_results(data)
-            lyrics = artist_and_song("songs", artist, song)
-            self.show_lyrics(lyrics)
+        if records:
+            if len(records) > 100:
+                view_now = messagebox.askyesno(title="Show Results?", message=f"There are {len(records)} results. Viewing all of them at once may slow down your computer. Do you want to view all of them now?")
+                if view_now:
+                    if len(records) > 1:
+                        #TODO: load results async
+                        for index, record in enumerate(sorted(records, reverse=True)):
+                            song, artist = record.artist, record.song
+                            self.update_results_list(song, artist)
+                    elif len(records) == 1:
+                        song, artist = record.artist, records.song
+                        lyrics = artist_and_song("songs", artist, song)
+                        self.show_lyrics(lyrics)
+            else:
+#                 pprint(records)
+                self.update_results_list(records)
         else:
-            self.show_results(["No matching results."])
+            self.update_results_list(DisplayRecord(None, None))
 
 
-    def show_results(self, data: List[Text]) -> None:
-        if len(data) > 100:
-            view_now = messagebox.askyesno(title="Show Results?", message=f"There are {len(data)} results. Viewing all of them at once may slow down your computer. Do you want to view all of them now?")
-#             breakpoint()
-            if view_now:
-                #TODO: make this threaded
-                name_pairs = [pathlib.Path(record.file).stem.split("_") for record in self.regex_results]
-                artist_songs = [(pair[0], pair[1]) for pair in name_pairs]
-                self.show_songs(artist_songs)
+    def update_lyrics_box(self, data: List) -> None:
+        self.lyrics.insert("1.0", data)
 
 
-
+    def update_results_list(self, data: List[DisplayRecord]) -> None:
+        #TODO, fix this
+        if data:
+            for item in data:
+                if item is not None:
+                    self.list_.insert(0, f"'{item.song}' by {item.artist}")

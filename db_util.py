@@ -123,11 +123,11 @@ def populate_db_with_demo_data() -> None:
     with open(f"Databases/{DB}.csv", "r") as f:
         data = csv.reader(f, delimiter="|")
         for row in data:
-            print("data row:", row)
+#             print("data row:", row)
             row = [counter] + row
             cur.execute("""INSERT INTO {TABLE} VALUES(?, ?, ?, ?)""", row)
             counter += 1
-            print(counter, end="\r")
+#             print(counter, end="\r")
 
 
 def song_query(database: Text, table: Text, artist: Text) -> List:
@@ -211,14 +211,14 @@ def get_highest_db_index(cur: sqlite3.Cursor, table: Text) -> int:
 
 def all_file_records_in_db():
     file_records = "Databases/file_records.pickle"
-    print(f"Loading pickle: {file_records}")
+#     print(f"Loading pickle: {file_records}")
     records = urlparser.load_pickle(file_records)
     for index, record in enumerate(records, start=1):
         lyrics = artist_and_song(record.artist, record.song)
-        print(f"Progress: {index}", end="\r")
+#         print(f"Progress: {index}", end="\r")
         if not lyrics:
             logging.debug(f"Record not found in DB: {record}")
-    print()
+#     print()
 
 
 
@@ -240,7 +240,7 @@ if __name__ == "__main__":
 
     # load the FileRecords
     file_record_pickle = "Databases/file_records.pickle"
-    print(f"Loading pickle: {file_record_pickle}")
+#     print(f"Loading pickle: {file_record_pickle}")
     file_records = urlparser.load_pickle(file_record_pickle)
 
     # load the URLRecords

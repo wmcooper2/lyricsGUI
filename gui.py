@@ -28,7 +28,7 @@ if __name__ == "__main__":
     app = App()
     app_width = 1000
     app_height = 700
-    app_xpos = 100
+    app_xpos = 500
     app_ypos = 100
     app_window_size = f"{app_width}x{app_height}+{app_xpos}+{app_ypos}"
     app.geometry(app_window_size)

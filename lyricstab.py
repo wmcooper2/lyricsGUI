@@ -1,11 +1,6 @@
 #std lib
-import codecs
-import concurrent.futures
-# import csv
-import logging
 import pathlib
 from pprint import pprint
-import threading
 import time
 import tkinter as tk
 from tkinter import ttk
@@ -28,9 +23,8 @@ class LyricsTab(tk.Frame):
 
         #TODO: make regex results a class attribute in Results
         # it should be accessible everywhere for reading and have the same data everywhere
-        self.index = 0
-        self.step = 100
-        self.regex = None
+#         self.step = 100
+#         self.regex = None
 
         # Quit button
         self.quit_btn = ttk.Button(self, text="Quit", command=self.quit_gui)
@@ -40,11 +34,12 @@ class LyricsTab(tk.Frame):
     def cancel_search(self) -> None:
         self.search.cancel_search()
     
-    def clear_list(self) -> None:
-        self.results.reset_list()
-
     def clear_lyrics(self) -> None:
-        self.results.reset_lyrics()
+        self.results.clear_lyrics()
+
+    def clear_results(self) -> None:
+        self.results.clear_results()
+        self.results.clear_results_list()
 
     def reset_search(self) -> None:
         self.search.reset()
@@ -56,10 +51,8 @@ class LyricsTab(tk.Frame):
         self.results.show_lyrics(data)
     
     def show_results(self, data) -> None:
+        Results.search_results = data
         self.results.show_results(data)
-
-    def show_songs(self, data: List) -> None:
-        self.results.show_songs(data)
 
     def stop_search(self) -> None:
         self.search.stop()
@@ -73,17 +66,9 @@ class LyricsTab(tk.Frame):
     def toggle_fuzzy_search(self) -> None:
         self.search.toggle_fuzzy_search()
 
-    def _reset_cancel_flag(self) -> None:
-        self.cancel_flag = False
-
-    def _reset_index(self) -> None:
-        self.index = 0
-
     def quit_gui(self) -> None:
         """Quit the program."""
         #shut down any running threads
-        self.cancel_flag = True
+        self.cancel_search()
         # threads.join() ?
         quit()
-
-
