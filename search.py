@@ -41,6 +41,7 @@ class Search(tk.Frame):
         self.master = master
         self.fuzzy = False
         self.cancel_flag = False
+        self.search_in_progress = False
         self.index = 0
         self.song_count = db_util.record_count("Databases/lyrics.db", "songs")
         self.artist_count = db_util.artists("songs")
@@ -127,10 +128,13 @@ class Search(tk.Frame):
 
 
     def cancel_search(self) -> bool:
-        message = messagebox.askyesno(title="Cancel Current Search", message="Another search is currently in process. Do you wish to cancel that search and start a new one?")
-        if message == True:
-            self.stop()
-        return message
+        if self.search_in_progress:
+            message = "Another search is currently in process.\
+                    Do you wish to cancel that search and start a new one?"
+            if messagebox.askyesno(title="Cancel Current Search", message=message):
+                self.stop()
+
+#         return message
 
 
     def clear_results(self) -> None:
@@ -177,6 +181,9 @@ class Search(tk.Frame):
         self.master.clear_lyrics()
         self.master.clear_results()
         q = query
+
+        #ARTIST     SONG    GRAMMAR
+        #search for a song written by one artist, then search for grammar
         if q.artist and q.song and q.grammar:
             lyrics = None
             words = q.grammar.split(" ")
@@ -190,21 +197,7 @@ class Search(tk.Frame):
 #             self.show_results([record])
 #             self.show_lyrics(lyrics)
 
-        #match songs, then search for grammar
-        elif not q.artist and q.song and q.grammar:
-            #TODO, this block not finished, need to search through grammar
-            songs = db_util.song_query(q.artist)
-            print("songs:", songs)
-
-        #find grammar within all songs written by one artist
-        elif q.artist and not q.song and q.grammar:
-#                 artists = db_util.song_query(q.song)
-            songs = db_util.song_query(q.artist)
-            print("songs:", songs)
-            #convert to DisplayRecords
-#             records = [DisplayRecord(song[0], song[1]) for song in songs]
-#             self.show_results(records)
-
+        #ARTIST     SONG
         #find artist and song
         elif q.artist and q.song and not q.grammar:
             lyrics = None
@@ -218,39 +211,55 @@ class Search(tk.Frame):
 #                 self.show_results(record)
 #                 self.show_lyrics(lyrics)
 
+        #ARTIST             GRAMMAR
+        #find grammar within all songs written by one artist
+        elif q.artist and not q.song and q.grammar:
+#                 artists = db_util.song_query(q.song)
+            songs = db_util.song_query(q.artist)
+            print("songs:", songs)
+            #convert to DisplayRecords
+#             records = [DisplayRecord(song[0], song[1]) for song in songs]
+#             self.show_results(records)
+
+        #           SONG    GRAMMAR
+        #match songs, then search for grammar within those songs
+        elif not q.artist and q.song and q.grammar:
+            #TODO, this block not finished, need to search through grammar
+            songs = db_util.song_query(q.artist)
+            print("songs:", songs)
+
+        #                   GRAMMAR
         #search only for grammar in all songs
         elif not q.artist and not q.song and q.grammar:
             #TODO: rethink cancelling thread ability
             print("grammar search...:", q.grammar)
             search_in_progress = False
             if search_in_progress:
-                cancel = self.ask_to_cancel_search()
-                if cancel:
-                    message = self.long_search_message()
-                    if message:
-                        self.word_search(q.grammar, self.song_count)
+                message = self.long_search_message()
+                if message:
+                    self.word_search(q.grammar, self.song_count)
             else:
                 message = self.long_search_message()
                 if message:
                     self.word_search(q.grammar, self.song_count)
 
+        #           SONG
         #search for all records with the same song name
         elif not q.artist and q.song and not q.grammar:
-#             artists = None
-            artists = db_util.artist_query("Databases/lyrics.db", "songs", q.song)
-            print("artists:", artists)
+            records = db_util.artist_query("Databases/lyrics.db", "songs", q.song)
+            if records:
+                records = [DisplayRecord(record[0], record[1]) for record in records]
+                self.show_results(records)
 
-#             if artists:
-#                 records = [DisplayRecord(artist[0], artist[1]) for artist in artists]
-#                 self.show_results(records)
-
+        #ARTIST
         #all songs by a single artist
         elif q.artist and not q.song and not q.grammar:
             songs = db_util.artist2("songs", q.artist)
-            print("songs:", songs)
-#             records = [DisplayRecord(song[0], song[1]) for song in songs]
-#             self.show_results(records)
+            print("Entry - Artist:", songs[0])
+            records = [DisplayRecord(song[0], song[1]) for song in songs]
+            self.show_results(records)
 
+        #NONE     NONE    NONE
         #ask user to input anything
         else:
             self.input_something_message()
@@ -402,7 +411,9 @@ class Search(tk.Frame):
 
 
     def stop(self) -> None:
+        self.cancel_search()
         self.progress_bar.stop()
+        self.search_in_progress = False
         self.cancel_flag = True
         self.index = 0
 

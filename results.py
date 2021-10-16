@@ -61,6 +61,7 @@ class Results(tk.Frame):
 
 
     def ask_to_save(self, string: str) -> bool:
+        #if string is None...
         return messagebox.askyesno(title="Save to File?", message=f"Search for '{string}' is complete. Would you like to save the results to a CSV file? You can reload the results into other programs like Excel.")
 
 
@@ -119,13 +120,12 @@ class Results(tk.Frame):
         Results.clear_results()
 
 
-    def save_results(self, string: Text, data: List) -> None:
-        if self.ask_to_save(string):
-            save_file = filedialog.asksaveasfilename()
-            if save_file:
-                with open(save_file, "w+") as f:
-                    writer = csv.writer(f, delimiter="|")
-                    writer.writerows(data)
+    def save_results(self, data: List) -> None:
+        save_file = filedialog.asksaveasfilename()
+        if save_file:
+            with open(save_file, "w+") as f:
+                writer = csv.writer(f, delimiter="|")
+                writer.writerows(data)
 
 
     def show_lyrics(self, data) -> None:
@@ -139,33 +139,31 @@ class Results(tk.Frame):
 
     def show_results(self, records: List[DisplayRecord]) -> None:
         """Load the song and artist results into the list box."""
-        if records:
-            if len(records) > 100:
-                view_now = messagebox.askyesno(title="Show Results?", message=f"There are {len(records)} results. Viewing all of them at once may slow down your computer. Do you want to view all of them now?")
-                if view_now:
-                    if len(records) > 1:
-                        #TODO: load results async
-                        for index, record in enumerate(sorted(records, reverse=True)):
-                            song, artist = record.artist, record.song
-                            self.update_results_list(song, artist)
-                    elif len(records) == 1:
-                        song, artist = record.artist, records.song
-                        lyrics = artist_and_song("songs", artist, song)
-                        self.show_lyrics(lyrics)
-            else:
-#                 pprint(records)
-                self.update_results_list(records)
-        else:
-            self.update_results_list(DisplayRecord(None, None))
 
+        self.clear_results_list()
+        if len(records) == 1:
+            if records[0].artist == "" and record[0].song == "":
+                # show no match message
+                self.list_.insert(0, "No matches found")
+            else:
+                lyrics = artist_and_song("songs", record.artist, record.song)
+                self.show_lyrics(lyrics)
+
+        elif len(records) > 100:
+            view_now = messagebox.askyesno(title="Show Results?", message=f"There are {len(records)} results. Viewing all of them at once may slow down your computer. Do you want to view all of them now?")
+            if view_now:
+                #TODO: load results async
+                for index, record in enumerate(sorted(records, reverse=True)):
+                    song, artist = record.artist, record.song
+                    self.list_.insert(0, f"'{record.song}' by {record.artist}")
+
+            elif self.ask_to_save():
+                self.save_results(records)
+
+        else:
+            # just show normally
+            for index, record in enumerate(sorted(records, reverse=True)):
+                self.list_.insert(0, f"'{record.song}' by {record.artist}")
 
     def update_lyrics_box(self, data: List) -> None:
         self.lyrics.insert("1.0", data)
-
-
-    def update_results_list(self, data: List[DisplayRecord]) -> None:
-        #TODO, fix this
-        if data:
-            for item in data:
-                if item is not None:
-                    self.list_.insert(0, f"'{item.song}' by {item.artist}")
