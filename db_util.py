@@ -63,6 +63,7 @@ def artists(table: Text) -> List:
 
 def artist_and_song(table: Text, artist: Text, song: Text) -> Text:
     """Returns the lyrics of a song by a specific artist."""
+
     cur, con = connect()
     cur.execute(f"SELECT lyrics FROM {table} WHERE artist=? AND song=?", (artist, song))
     results = cur.fetchall()
@@ -75,6 +76,7 @@ def artist_and_song(table: Text, artist: Text, song: Text) -> Text:
 
 def index_search(database: Text, table: Text, index: int, step: int) -> List:
     """Search for records starting at 'index'."""
+
     cur, con = connect()
     cur.execute(f"SELECT * FROM {table} WHERE id>=? AND id<=?", (index, index+step))
     records = cur.fetchall()
@@ -85,6 +87,7 @@ def index_search(database: Text, table: Text, index: int, step: int) -> List:
 #TODO, implement fuzzy search outside of db
 def fuzzy_artist(database: Text, table: Text, artist: Text) -> List:
     """Fuzzy search of 'artist'. Returns songs written by 'artist'."""
+
     cur, con = connect()
     sql_statement = f"SELECT artist,song FROM {table} WHERE LOWER(artist)='{artist.lower()}'"
     cur.execute(sql_statement)
@@ -95,6 +98,7 @@ def fuzzy_artist(database: Text, table: Text, artist: Text) -> List:
 
 def fuzzy_artist_and_song(database: Text, table: Text, artist: Text, song: Text) -> Text:
     """Fuzzy search for a 'song' by an 'artist'. Returns the lyrics."""
+
     cur, con = connect()
     sql_statement = f"SELECT lyrics FROM {table} WHERE LOWER(artist)='{artist.lower()}' AND LOWER(song)='{song.lower()}'"
     cur.execute(sql_statement)
@@ -108,6 +112,7 @@ def fuzzy_artist_and_song(database: Text, table: Text, artist: Text, song: Text)
 
 def fuzzy_song(database: Text, table: Text, song: Text) -> List:
     """Fuzzy search for 'song'. Returns list of artists and the song."""
+
     cur, con = connect()
     sql_statement = f"SELECT artist,song FROM {table} WHERE LOWER(song)='{song.lower()}'"
     cur.execute(sql_statement)
@@ -119,6 +124,7 @@ def fuzzy_song(database: Text, table: Text, song: Text) -> List:
 #TODO: rename to be more flexible with the debug choice at the top of this module
 def populate_db_with_demo_data() -> None:
     """Inserts about 60000 songs into the database"""
+
     counter = 0
     with open(f"Databases/{DB}.csv", "r") as f:
         data = csv.reader(f, delimiter="|")
@@ -132,11 +138,24 @@ def populate_db_with_demo_data() -> None:
 
 def song_query(database: Text, table: Text, artist: Text) -> List:
     """Get all songs from 'artist'."""
+    
     cur, con = connect()
     cur.execute(f"SELECT artist,song FROM {table} WHERE artist=?", (artist,))
     results = cur.fetchall()
     close_connection(cur, con)
     return results
+
+
+def song_query2(artist: Text) -> List:
+    """Get all songs from 'artist'."""
+    
+    cur, con = connect()
+    cur.execute(f"SELECT * FROM songs WHERE artist=?", (artist,))
+    results = cur.fetchall()
+    close_connection(cur, con)
+    return results
+
+
 
 
 ################################################################################

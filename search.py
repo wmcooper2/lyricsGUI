@@ -176,17 +176,20 @@ class Search(tk.Frame):
 
 
     def exact_search(self, query: Query):
+        """Perform an exact search on all items in 'query'."""
+
         #match artist and song, then search for grammar
         self.master.clear_lyrics()
         self.master.clear_results()
         q = query
+#         artist = q.artist
+#         song = q.song
+#         grammar = q.grammar
 
         #ARTIST     SONG    GRAMMAR
         #search for a song written by one artist, then search for grammar
         if q.artist and q.song and q.grammar:
             lyrics = db_util.artist_and_song("songs", q.artist, q.song)
-
-#             breakpoint()
             match = re.search(q.grammar, lyrics)
             #TODO: if any match, find all matches and highlight
 #             words = q.grammar.split(" ")
@@ -199,6 +202,7 @@ class Search(tk.Frame):
         elif q.artist and q.song and not q.grammar:
 #             lyrics = None
             lyrics = db_util.artist_and_song("songs", q.artist, q.song)
+            print("ARTIST None GRAMMAR:", lyrics[:100])
             if lyrics:
                 record = DisplayRecord(q.artist, q.song)
                 self.show_results([record], lyrics=lyrics)
@@ -209,25 +213,34 @@ class Search(tk.Frame):
         #ARTIST             GRAMMAR
         #find grammar within all songs written by one artist
         elif q.artist and not q.song and q.grammar:
+            print("ARTIST None GRAMMAR")
 #                 artists = db_util.song_query(q.song)
-            songs = db_util.song_query(q.artist)
-            print("songs:", songs)
-            #convert to DisplayRecords
-#             records = [DisplayRecord(song[0], song[1]) for song in songs]
+            records = db_util.song_query2(q.artist)
+
+#             for record in records
+            matches = [re.search(q.grammar, record[3]) for record in records]
+            print(matches)
+
+    #             find grammar matches in these records
+    #             for the records that have the grammar
+        #             convert to DisplayRecords
+        #             records = [DisplayRecord(song[0], song[1]) for song in songs]
+#             show only the records with matches
+#             ask to save the results for future use
 #             self.show_results(records, lyrics=lyrics)
 
         #           SONG    GRAMMAR
         #match songs, then search for grammar within those songs
         elif not q.artist and q.song and q.grammar:
             #TODO, this block not finished, need to search through grammar
-            songs = db_util.song_query(q.artist)
-            print("songs:", songs)
+            records = db_util.song_query(q.artist)
+            print("None SONG GRAMMAR:", records[0])
 
         #                   GRAMMAR
         #search only for grammar in all songs
         elif not q.artist and not q.song and q.grammar:
             #TODO: rethink cancelling thread ability
-            print("grammar search...:", q.grammar)
+            print("None None GRAMMAR:", q.grammar)
             search_in_progress = False
             if search_in_progress:
                 message = self.long_search_message()
@@ -242,6 +255,7 @@ class Search(tk.Frame):
         #search for all records with the same song name
         elif not q.artist and q.song and not q.grammar:
             records = db_util.artist_query("Databases/lyrics.db", "songs", q.song)
+            print("None SONG None:", records[0])
             if records:
                 records = [DisplayRecord(record[0], record[1]) for record in records]
                 self.show_results(records)
@@ -249,14 +263,15 @@ class Search(tk.Frame):
         #ARTIST
         #all songs by a single artist
         elif q.artist and not q.song and not q.grammar:
-            songs = db_util.artist2("songs", q.artist)
-            print("Entry - Artist:", songs[0])
-            records = [DisplayRecord(song[0], song[1]) for song in songs]
+            records = db_util.artist2("songs", q.artist)
+            print("ARTIST None None:", records[0])
+            records = [DisplayRecord(records[0], records[1]) for records in records]
             self.show_results(records)
 
         #NONE     NONE    NONE
         #ask user to input anything
         else:
+            print("None None None")
             self.input_something_message()
 
 
@@ -301,7 +316,6 @@ class Search(tk.Frame):
             end_time = time.time()
             time_taken = (end_time - start_time) / 60
             result_count = len(self.results)
-            # reset the gui after the threaded search is finished
 #             self._stop_progress_bar()
             self.stop()
             self.update_progress_label(f"Search completed in {round(time_taken, 3)} minutes. {result_count} matches found.")
@@ -315,7 +329,6 @@ class Search(tk.Frame):
         self.update_progress_label(f"Searching for: '{pattern}'...")
         self.clear_lyrics()
         self.clear_results()
-        self.reset_search()
         self.toggle_fuzzy_search()
         self.results = []
         self.cancel_flag = False
@@ -416,6 +429,7 @@ class Search(tk.Frame):
     @timing
     def thread_manager(self, limit: int, regex: re.Pattern):
         """Main search thread."""
+
         self.regex = regex
         self.cancel_flag = False
         results = set()
@@ -446,6 +460,8 @@ class Search(tk.Frame):
 
 
     def toggle_fuzzy_search(self) -> None:
+        """Toggle the fuzzy search options."""
+
         self.fuzzy = not self.fuzzy
         if self.fuzzy:
             self.words.state(["!disabled"])
@@ -456,17 +472,22 @@ class Search(tk.Frame):
 
 
     def update_progress_label(self, string: Text) -> None:
+        """Update the progress bar label with new text."""
+
         self.progress_label["text"] = string
         self.progress_bar["value"] = 0
 
 
     def update_scale(self, value):
+        """Update the scale label value with new text."""
+
         self.slider_var = value
         self.slider_label["text"] = f"Word gap: {int(float(value))}"
 
 
     def word_search(self, pattern: str, limit: int):
         """Search for 'pattern' in all lyrics."""
+
         #set up the gui for threaded search
         self.update_progress_label(f"Searching for: '{pattern}'...")
         self.clear_lyrics()

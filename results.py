@@ -53,24 +53,35 @@ class Results(tk.Frame):
 
     @classmethod
     def clear_results(cls) -> None:
+        """Clear all search results from the class attribute."""
+
         if cls.search_results:
             cls.search_results = []
 
     @classmethod
     def clear_lyrics(cls) -> None:
+        """Clear the lyrics text from the class attribute."""
+
         if cls.lyrics:
             cls.lyrics.delete("1.0", tk.END)
 
 
+    #TODO, combine with self.save_results()?
     def ask_to_save(self, string: str) -> bool:
+        """Ask the user to save the data."""
+
         #if string is None...
         return messagebox.askyesno(title="Save to File?", message=f"Search for '{string}' is complete. Would you like to save the results to a CSV file? You can reload the results into other programs like Excel.")
 
 
     def clear_results_list(self) -> None:
+        """Clear the list of search results."""
+
         self.list_.delete(0, tk.END)
 
     def clear_lyrics_text(self) -> None:
+        """Clear the lyrics text."""
+
         self.lyrics.delete("1.0", tk.END)
 
 
@@ -80,6 +91,7 @@ class Results(tk.Frame):
 
     def handle_results_click(self, option: str) -> None:
         """Load the selected song's lyrics into the lyrics box."""
+
         selection = None
         index = self.list_.curselection()
         try:
@@ -106,7 +118,8 @@ class Results(tk.Frame):
 
 
     def highlight_lyrics(self, lyrics: Text, words: List) -> None:
-        """Highlight the 'words'."""
+        """Highlight the 'words' in the lyrics text."""
+
         pass
         #TODO: no highlighting is happening...
         if lyrics:
@@ -121,11 +134,9 @@ class Results(tk.Frame):
                 box.tag_add("highlight", start, end)
 
 
-    def reset(self) -> None:
-        Results.clear_results()
-
-
     def save_results(self, data: List) -> None:
+        """Ask user for file name to save it as, then write to that file as a CSV."""
+
         save_file = filedialog.asksaveasfilename()
         if save_file:
             with open(save_file, "w+") as f:
@@ -135,6 +146,7 @@ class Results(tk.Frame):
 
     def show_lyrics(self, data: Text) -> None:
         """Load the lyrics results into the text box."""
+
         self.clear_lyrics_text()
         if data:
             self.update_lyrics_box(data)
@@ -151,11 +163,8 @@ class Results(tk.Frame):
             artist = records[0].artist
             song = records[0].song
             if artist == "" and song == "":
-                # show no match message
                 self.list_.insert(0, "No matches found")
             elif lyrics:
-#                 lyrics = db_util.artist_and_song("songs", artist, song)
-                
                 self.list_.insert(0, f"'{song}' by {artist}")
                 self.show_lyrics(lyrics)
 
@@ -176,4 +185,6 @@ class Results(tk.Frame):
                 self.list_.insert(0, f"'{record.song}' by {record.artist}")
 
     def update_lyrics_box(self, data: Text) -> None:
+        """Update the lyrics box with 'data'."""
+
         self.lyrics.insert("1.0", data)

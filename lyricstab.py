@@ -39,9 +39,6 @@ class LyricsTab(tk.Frame):
         self.results.clear_results()
         self.results.clear_results_list()
 
-    def reset_search(self) -> None:
-        self.search.reset()
-
     def save_results(self, string: Text, data: List) -> None:
         self.results.save_results(string, data)
 
