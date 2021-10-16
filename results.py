@@ -58,6 +58,7 @@ class Results(tk.Frame):
         if cls.search_results:
             cls.search_results = []
 
+
     @classmethod
     def clear_lyrics(cls) -> None:
         """Clear the lyrics text from the class attribute."""
@@ -66,12 +67,18 @@ class Results(tk.Frame):
             cls.lyrics.delete("1.0", tk.END)
 
 
-    #TODO, combine with self.save_results()?
-    def ask_to_save(self, string: str) -> bool:
+    def ask_to_save(self, string: Text = None) -> bool:
         """Ask the user to save the data."""
 
-        #if string is None...
-        return messagebox.askyesno(title="Save to File?", message=f"Search for '{string}' is complete. Would you like to save the results to a CSV file? You can reload the results into other programs like Excel.")
+        if string:
+            message = f"Search for '{string}' is complete.\
+                    Would you like to save the results to a CSV file?\
+                    You can reload the results into other programs like Excel."
+        else:
+            message = "Search complete.\
+                    Would you like to save the results to a CSV file?\
+                    You can reload the results into other programs like Excel."
+        return messagebox.askyesno(title="Save to File?", message=message)
 
 
     def clear_results_list(self) -> None:
@@ -79,26 +86,25 @@ class Results(tk.Frame):
 
         self.list_.delete(0, tk.END)
 
+
     def clear_lyrics_text(self) -> None:
         """Clear the lyrics text."""
 
         self.lyrics.delete("1.0", tk.END)
 
 
-#     def _insert_into_results_list(self, song: Text, artist: Text) -> None:
-#         self.list_.insert(0, f"'{song}' by {artist}")
-
-
-    def handle_results_click(self, option: str) -> None:
+    def handle_results_click(self, option: Text) -> None:
         """Load the selected song's lyrics into the lyrics box."""
 
         selection = None
         index = self.list_.curselection()
+
         try:
             selection = option.widget.get(index)
         except tk.TclError:
             logging.debug(f"TypeError: handle_results_click(), {selection}")
         song_match = None
+
         if selection:
             try:
                 song_match = re.match('\".*?\"', selection)
@@ -107,6 +113,7 @@ class Results(tk.Frame):
                 song_match = None
         song = None
         artist = None
+
         if song_match:
             song = song_match.group(0)
             song = selection[1:song_match.end()-1]
@@ -170,6 +177,7 @@ class Results(tk.Frame):
 
         elif len(records) > 100:
             view_now = messagebox.askyesno(title="Show Results?", message=f"There are {len(records)} results. Viewing all of them at once may slow down your computer. Do you want to view all of them now?")
+
             if view_now:
                 #TODO: load results async
                 for index, record in enumerate(sorted(records, reverse=True)):

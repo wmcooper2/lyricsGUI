@@ -25,6 +25,7 @@ logging.basicConfig(filename='Logs/errors.log', encoding='utf-8', level=logging.
 
 def timing(function):
     """Timing decorator."""
+
     def wrapper(*args, **kwargs):
         start = time.time()
         function(*args, **kwargs)
@@ -121,13 +122,23 @@ class Search(tk.Frame):
         self.artist.focus()
 
 
+    def ask_to_save(self, string: Text = None) -> bool:
+        """Ask the user if they want to save the results."""
+
+        return self.master.ask_to_save(string)
+
+
     def clear_search(self) -> None:
+        """Clear the search entries."""
+
         self.words["text"] = " "
         self.song["text"] = " "
         self.artist["text"] = " "
 
 
     def cancel_search(self) -> bool:
+        """Cancel the current search."""
+
         if self.search_in_progress:
             message = "Another search is currently in process.\
                     Do you wish to cancel that search and start a new one?"
@@ -137,20 +148,27 @@ class Search(tk.Frame):
 
 
     def clear_results(self) -> None:
+        """Clear the results list."""
+
         self.master.clear_results()
 
 
     def clear_lyrics(self) -> None:
+        """Clear the lyrics text box."""
+
         self.master.clear_lyrics()
 
 
-    def disable_fuzzy_search(self):
+    def disable_fuzzy_search(self) -> None:
+        """Disable the fuzzy search options."""
+
         self.fuzzy = False
         self.slider.state(["disabled"])
 
 
     def distant_neighboring_words(self, lyrics: List, words: List, gap: int) -> Any:
         """This algorithm is the heart of the gap_search() function."""
+
         if words:
             try:
                 index = lyrics.index(words[0])
@@ -170,41 +188,43 @@ class Search(tk.Frame):
             return str(True)
 
 
-    def enable_fuzzy_search(self):
+    def enable_fuzzy_search(self) -> None:
+        """Enable the fuzzy saerch options."""
+
         self.fuzzy = True
         self.slider.state(["!disabled"])
 
 
-    def exact_search(self, query: Query):
+    def exact_search(self, query: Query) -> None:
         """Perform an exact search on all items in 'query'."""
 
         #match artist and song, then search for grammar
         self.master.clear_lyrics()
         self.master.clear_results()
         q = query
-#         artist = q.artist
+        artist = q.artist
 #         song = q.song
 #         grammar = q.grammar
 
         #ARTIST     SONG    GRAMMAR
         #search for a song written by one artist, then search for grammar
-        if q.artist and q.song and q.grammar:
-            lyrics = db_util.artist_and_song("songs", q.artist, q.song)
+        if artist and q.song and q.grammar:
+            lyrics = db_util.artist_and_song("songs", artist q.song)
             match = re.search(q.grammar, lyrics)
             #TODO: if any match, find all matches and highlight
 #             words = q.grammar.split(" ")
-            record = DisplayRecord(q.artist, q.song)
+            record = DisplayRecord(artist q.song)
             self.show_results([record], lyrics=lyrics)
 #             self.show_lyrics(lyrics)
 
         #ARTIST     SONG
         #find artist and song
-        elif q.artist and q.song and not q.grammar:
+        elif artist and q.song and not q.grammar:
 #             lyrics = None
-            lyrics = db_util.artist_and_song("songs", q.artist, q.song)
+            lyrics = db_util.artist_and_song("songs", artist q.song)
             print("ARTIST None GRAMMAR:", lyrics[:100])
             if lyrics:
-                record = DisplayRecord(q.artist, q.song)
+                record = DisplayRecord(artist q.song)
                 self.show_results([record], lyrics=lyrics)
             else:
                 record = DisplayRecord("", "")
@@ -212,25 +232,26 @@ class Search(tk.Frame):
 
         #ARTIST             GRAMMAR
         #find grammar within all songs written by one artist
-        elif q.artist and not q.song and q.grammar:
+        elif artist and not q.song and q.grammar:
             print("ARTIST None GRAMMAR")
-            records = db_util.song_query2(q.artist)
+            records = db_util.song_query2(artist)
             #if match in lyrics, make DisplayRecord
             matches = [DisplayRecord(record[1], record[2]) for record in records if re.search(q.grammar, record[3])]
             self.show_results(matches)
-#             ask to save the results for future use
-#             self.show_results(records, lyrics=lyrics)
+
+            if self.ask_to_save():
+                self.save_results(matches)
 
         #           SONG    GRAMMAR
         #match songs, then search for grammar within those songs
-        elif not q.artist and q.song and q.grammar:
+        elif not artist and q.song and q.grammar:
             #TODO, this block not finished, need to search through grammar
-            records = db_util.song_query(q.artist)
+            records = db_util.song_query(artist)
             print("None SONG GRAMMAR:", records[0])
 
         #                   GRAMMAR
         #search only for grammar in all songs
-        elif not q.artist and not q.song and q.grammar:
+        elif not artist and not q.song and q.grammar:
             #TODO: rethink cancelling thread ability
             print("None None GRAMMAR:", q.grammar)
             search_in_progress = False
@@ -245,7 +266,7 @@ class Search(tk.Frame):
 
         #           SONG
         #search for all records with the same song name
-        elif not q.artist and q.song and not q.grammar:
+        elif not artist and q.song and not q.grammar:
             records = db_util.artist_query("Databases/lyrics.db", "songs", q.song)
             print("None SONG None:", records[0])
             if records:
@@ -254,8 +275,8 @@ class Search(tk.Frame):
 
         #ARTIST
         #all songs by a single artist
-        elif q.artist and not q.song and not q.grammar:
-            records = db_util.artist2("songs", q.artist)
+        elif artist and not q.song and not q.grammar:
+            records = db_util.artist2("songs", artist)
             print("ARTIST None None:", records[0])
             records = [DisplayRecord(records[0], records[1]) for records in records]
             self.show_results(records)
@@ -265,6 +286,8 @@ class Search(tk.Frame):
         else:
             print("None None None")
             self.input_something_message()
+
+#         return results
 
 
     def fuzzy_search(self, query: Query):
@@ -292,6 +315,7 @@ class Search(tk.Frame):
 
     def fuzzy_manager(self, pattern: str, limit: int, gap: int) -> None:
             """Main fuzzy-search thread."""
+
             #TODO: finish the threaded gap search
             start_time = time.time()
             while self.index < limit and not self.cancel_flag:
@@ -312,11 +336,12 @@ class Search(tk.Frame):
             self.stop()
             self.update_progress_label(f"Search completed in {round(time_taken, 3)} minutes. {result_count} matches found.")
             self.toggle_fuzzy_search()
-#             self.save_results(pattern, self.results)
+#             self.save_results(self.results)
 
 
     def fuzzy_word_search(self, pattern: str, limit: int, gap: int):
         """Search for 'pattern' with max 'gap' between any pairs of neighboring words in 'pattern' through all lyrics."""
+
         #set up the gui for threaded search
         self.update_progress_label(f"Searching for: '{pattern}'...")
         self.clear_lyrics()
@@ -336,6 +361,7 @@ class Search(tk.Frame):
 
     def gap_search(self, words: str="", gap: int=0) -> list:
         """Searches for all 'words' with max 'gap' between any neighboring pair of words."""
+
         def _gap_search_result(result: str) -> bool:
             """Convert the result into a boolean."""
             #TODO: 
@@ -359,17 +385,26 @@ class Search(tk.Frame):
 
     def input_something_message(self) -> None:
         """Advises user to input something if they haven't."""
+
         messagebox.showinfo(title="Advice", message="Input something to begin a search.")
 
 
     def long_search_message(self) -> bool:
         """Displays 'yes/no' confirmation to user if the search may take a long time."""
-        return messagebox.askyesno(title="Word or Phrase Search", message="This may take up to 30 minutes. You may continue to use the program to search while waiting. The word entry field and word gap option will be disabled until the search is completed. A notification will appear when the search is finished. Are you sure you want to continue?")
+        
+        message = "This may take up to 30 minutes.\
+                You may continue to use the program to search while waiting.\
+                The word entry field and word gap option will be\
+                disabled until the search is completed.\
+                A notification will appear when the search is finished.\
+                Are you sure you want to continue?"
+        return messagebox.askyesno(title="Word or Phrase Search", message=message)
 
 
     #TODO, rethink FileMatch type
     def regex_search(self, data: Tuple[Text]) -> Optional[FileMatch]:
         """Perform a regex search for 'pattern'."""
+
         match = None
         try:
             match = self.regex.search(data[3])
@@ -377,11 +412,15 @@ class Search(tk.Frame):
                 return data[:3]
         except TypeError:
             logging.debug(f"TypeError: {file_}")
+
         self.tick_progress()
         print(data[0], end="\r")
 
-    def save_results(string: Text, results: List) -> None:
-        self.master.save_results(string, results)
+
+    def save_results(self, results: List[DisplayRecord]) -> None:
+        """Save the results"""
+
+        self.master.save_results(results)
 
 
     def search(self) -> None:
@@ -404,6 +443,7 @@ class Search(tk.Frame):
             self.fuzzy_search(Query(artist, song, grammar))
         else:
             self.exact_search(Query(artist, song, grammar))
+            #TODO, get a return value from the search funciton and continue here.
 
 
     def show_results(self, songs: List[DisplayRecord], lyrics=None) -> None:
@@ -489,6 +529,7 @@ class Search(tk.Frame):
         regex = re.compile(pattern)
         self.results = []
         self.cancel_flag = False
+
         try:
             # create main thread to manage the other threads
             manager_thread = threading.Thread(target=self.thread_manager, args=(limit, regex))

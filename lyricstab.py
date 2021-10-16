@@ -28,6 +28,9 @@ class LyricsTab(tk.Frame):
         self.quit_btn.grid(row=3, column=0, columnspan=10, sticky=tk.E+tk.W)
         self.quit_btn.grid_columnconfigure(0, weight=1)  # allows expansion of columns and rows?
 
+    def ask_to_save(self, string: Text = None) -> bool:
+        return self.results.ask_to_save(string)
+
     def cancel_search(self) -> None:
         self.search.cancel_search()
     
@@ -39,8 +42,8 @@ class LyricsTab(tk.Frame):
         self.results.clear_results()
         self.results.clear_results_list()
 
-    def save_results(self, string: Text, data: List) -> None:
-        self.results.save_results(string, data)
+    def save_results(self, data: List) -> None:
+        self.results.save_results(data)
 
     def show_lyrics(self, data) -> None:
         self.results.show_lyrics(data)
