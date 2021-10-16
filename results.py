@@ -146,6 +146,7 @@ class Results(tk.Frame):
         """Load the song and artist results into the list box."""
 
         self.clear_results_list()
+        self.clear_lyrics_text()
         if len(records) == 1:
             artist = records[0].artist
             song = records[0].song

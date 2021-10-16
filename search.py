@@ -184,16 +184,14 @@ class Search(tk.Frame):
         #ARTIST     SONG    GRAMMAR
         #search for a song written by one artist, then search for grammar
         if q.artist and q.song and q.grammar:
-            lyrics = None
-            words = q.grammar.split(" ")
-            lyrics = db_util.artist_and_song(q.artist, q.song)
-            print("lyrics:", lyrics)
-#             if lyrics:
-#                 #refactor
-#                 assert len(lyrics) == 1 # only 1, not more
-#                 match = re.search(q.grammar, lyrics)
-#             record = DisplayRecord(q.artist, q.song)
-#             self.show_results([record])
+            lyrics = db_util.artist_and_song("songs", q.artist, q.song)
+
+#             breakpoint()
+            match = re.search(q.grammar, lyrics)
+            #TODO: if any match, find all matches and highlight
+#             words = q.grammar.split(" ")
+            record = DisplayRecord(q.artist, q.song)
+            self.show_results([record], lyrics=lyrics)
 #             self.show_lyrics(lyrics)
 
         #ARTIST     SONG
@@ -206,7 +204,7 @@ class Search(tk.Frame):
                 self.show_results([record], lyrics=lyrics)
             else:
                 record = DisplayRecord("", "")
-                self.show_results([record])
+                self.show_results([record], lyrics=lyrics)
 
         #ARTIST             GRAMMAR
         #find grammar within all songs written by one artist
@@ -216,7 +214,7 @@ class Search(tk.Frame):
             print("songs:", songs)
             #convert to DisplayRecords
 #             records = [DisplayRecord(song[0], song[1]) for song in songs]
-#             self.show_results(records)
+#             self.show_results(records, lyrics=lyrics)
 
         #           SONG    GRAMMAR
         #match songs, then search for grammar within those songs
