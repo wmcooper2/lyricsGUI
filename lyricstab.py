@@ -1,4 +1,5 @@
 #std lib
+from collections import namedtuple
 import pathlib
 from pprint import pprint
 import time
@@ -12,6 +13,8 @@ from results import Results
 from search import Search
 
 
+DisplayRecord = namedtuple("DisplayRecord", ["artist", "song"])
+
 
 class LyricsTab(tk.Frame):
 
@@ -21,12 +24,6 @@ class LyricsTab(tk.Frame):
         self.search = Search(self)
         self.results = Results(self)
 
-        #TODO: make regex results a class attribute in Results
-        # it should be accessible everywhere for reading and have the same data everywhere
-#         self.step = 100
-#         self.regex = None
-
-        # Quit button
         self.quit_btn = ttk.Button(self, text="Quit", command=self.quit_gui)
         self.quit_btn.grid(row=3, column=0, columnspan=10, sticky=tk.E+tk.W)
         self.quit_btn.grid_columnconfigure(0, weight=1)  # allows expansion of columns and rows?
@@ -36,6 +33,7 @@ class LyricsTab(tk.Frame):
     
     def clear_lyrics(self) -> None:
         self.results.clear_lyrics()
+        self.results.clear_lyrics_text()
 
     def clear_results(self) -> None:
         self.results.clear_results()
@@ -50,9 +48,9 @@ class LyricsTab(tk.Frame):
     def show_lyrics(self, data) -> None:
         self.results.show_lyrics(data)
     
-    def show_results(self, data) -> None:
+    def show_results(self, data: List[DisplayRecord], lyrics=None) -> None:
         Results.search_results = data
-        self.results.show_results(data)
+        self.results.show_results(data, lyrics=lyrics)
 
     def stop_search(self) -> None:
         self.search.stop()
@@ -68,7 +66,6 @@ class LyricsTab(tk.Frame):
 
     def quit_gui(self) -> None:
         """Quit the program."""
-        #shut down any running threads
         self.cancel_search()
         # threads.join() ?
         quit()

@@ -131,9 +131,8 @@ class Search(tk.Frame):
         if self.search_in_progress:
             message = "Another search is currently in process.\
                     Do you wish to cancel that search and start a new one?"
-            if messagebox.askyesno(title="Cancel Current Search", message=message):
+            if messagebox.askyesno(title="Cancel Search", message=message):
                 self.stop()
-
 #         return message
 
 
@@ -200,16 +199,14 @@ class Search(tk.Frame):
         #ARTIST     SONG
         #find artist and song
         elif q.artist and q.song and not q.grammar:
-            lyrics = None
+#             lyrics = None
             lyrics = db_util.artist_and_song("songs", q.artist, q.song)
-            print("lyrics:", lyrics)
-#             if lyrics:
-#                 record = DisplayRecord(q.artist, q.song)
-#                 self.show_results([record])
-#             else:
-#                 record = DisplayRecord("", "")
-#                 self.show_results(record)
-#                 self.show_lyrics(lyrics)
+            if lyrics:
+                record = DisplayRecord(q.artist, q.song)
+                self.show_results([record], lyrics=lyrics)
+            else:
+                record = DisplayRecord("", "")
+                self.show_results([record])
 
         #ARTIST             GRAMMAR
         #find grammar within all songs written by one artist
@@ -406,8 +403,8 @@ class Search(tk.Frame):
             self.exact_search(Query(artist, song, grammar))
 
 
-    def show_results(self, songs: List[DisplayRecord]) -> None:
-        self.master.show_results(songs)
+    def show_results(self, songs: List[DisplayRecord], lyrics=None) -> None:
+        self.master.show_results(songs, lyrics)
 
 
     def stop(self) -> None:

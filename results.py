@@ -15,8 +15,10 @@ from typing import Text, List
 #custom
 import db_util
 
+
 DisplayRecord = namedtuple("DisplayRecord", ["artist", "song"])
 logging.basicConfig(filename='Logs/errors.log', encoding='utf-8', level=logging.DEBUG)
+
 
 class Results(tk.Frame):
     lyrics = None
@@ -67,6 +69,9 @@ class Results(tk.Frame):
 
     def clear_results_list(self) -> None:
         self.list_.delete(0, tk.END)
+
+    def clear_lyrics_text(self) -> None:
+        self.lyrics.delete("1.0", tk.END)
 
 
 #     def _insert_into_results_list(self, song: Text, artist: Text) -> None:
@@ -128,25 +133,29 @@ class Results(tk.Frame):
                 writer.writerows(data)
 
 
-    def show_lyrics(self, data) -> None:
+    def show_lyrics(self, data: Text) -> None:
         """Load the lyrics results into the text box."""
-        self.reset_lyrics()
+        self.clear_lyrics_text()
         if data:
             self.update_lyrics_box(data)
         else:
-            self.update_lyrics_box(["No matching results."])
+            self.update_lyrics_box("No matching results.")
 
 
-    def show_results(self, records: List[DisplayRecord]) -> None:
+    def show_results(self, records: List[DisplayRecord], lyrics=None) -> None:
         """Load the song and artist results into the list box."""
 
         self.clear_results_list()
         if len(records) == 1:
-            if records[0].artist == "" and record[0].song == "":
+            artist = records[0].artist
+            song = records[0].song
+            if artist == "" and song == "":
                 # show no match message
                 self.list_.insert(0, "No matches found")
-            else:
-                lyrics = artist_and_song("songs", record.artist, record.song)
+            elif lyrics:
+#                 lyrics = db_util.artist_and_song("songs", artist, song)
+                
+                self.list_.insert(0, f"'{song}' by {artist}")
                 self.show_lyrics(lyrics)
 
         elif len(records) > 100:
@@ -165,5 +174,5 @@ class Results(tk.Frame):
             for index, record in enumerate(sorted(records, reverse=True)):
                 self.list_.insert(0, f"'{record.song}' by {record.artist}")
 
-    def update_lyrics_box(self, data: List) -> None:
+    def update_lyrics_box(self, data: Text) -> None:
         self.lyrics.insert("1.0", data)
