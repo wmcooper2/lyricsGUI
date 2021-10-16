@@ -18,7 +18,7 @@ def connect() -> Tuple[sqlite3.Cursor, sqlite3.Connection]:
     cur = con.cursor()
     return cur, con
 
-#TODO: replaced with song_query()?
+#TODO: replaced with songs_from_artist()?
 def artist(table: Text, name: Text) -> List:
     cur, con = connect()
     cur.execute(f"SELECT song FROM {table} WHERE artist=?", (name,))
@@ -36,7 +36,7 @@ def artist_query(database: Text, table: Text, name: Text) -> list:
     return results
 
 
-#TODO: replaced with song_query()?
+#TODO: replaced with songs_from_artist()?
 def artist2(table: Text, name: Text) -> list:
     cur, con = connect()
     cur.execute(f"SELECT artist,song FROM {table} WHERE artist=?", (name,))
@@ -85,11 +85,12 @@ def index_search(database: Text, table: Text, index: int, step: int) -> List:
 
 
 #TODO, implement fuzzy search outside of db
-def fuzzy_artist(database: Text, table: Text, artist: Text) -> List:
-    """Fuzzy search of 'artist'. Returns songs written by 'artist'."""
+def fuzzy_songs_from_artist(artist: Text) -> List:
+    """Fuzzy search of songs from 'artist'."""
 
     cur, con = connect()
-    sql_statement = f"SELECT artist,song FROM {table} WHERE LOWER(artist)='{artist.lower()}'"
+    sql_statement = f"SELECT artist,song FROM songs WHERE LOWER(artist)='{artist.lower()}'"
+    print("sql:", sql_statement)
     cur.execute(sql_statement)
     results = cur.fetchall()
     close_connection(cur, con)
@@ -129,28 +130,27 @@ def populate_db_with_demo_data() -> None:
     with open(f"Databases/{DB}.csv", "r") as f:
         data = csv.reader(f, delimiter="|")
         for row in data:
-#             print("data row:", row)
             row = [counter] + row
             cur.execute("""INSERT INTO {TABLE} VALUES(?, ?, ?, ?)""", row)
             counter += 1
-#             print(counter, end="\r")
+            print(counter, end="\r")
 
 
-def song_query(database: Text, table: Text, artist: Text) -> List:
+def songs_from_artist(artist: Text) -> List:
     """Get all songs from 'artist'."""
     
     cur, con = connect()
-    cur.execute(f"SELECT artist,song FROM {table} WHERE artist=?", (artist,))
+    cur.execute(f"SELECT artist,song FROM songs WHERE artist=?", (artist,))
     results = cur.fetchall()
     close_connection(cur, con)
     return results
 
 
-def song_query2(artist: Text) -> List:
-    """Get all songs from 'artist'."""
+def artists_having_song(song: Text) -> List:
+    """Get all artists who have a song with the same name."""
     
     cur, con = connect()
-    cur.execute(f"SELECT * FROM songs WHERE artist=?", (artist,))
+    cur.execute(f"SELECT * FROM songs WHERE song=?", (song,))
     results = cur.fetchall()
     close_connection(cur, con)
     return results

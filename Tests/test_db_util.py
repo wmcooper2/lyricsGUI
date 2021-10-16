@@ -73,8 +73,8 @@ class TestLyricsDB:
         result = db.index_search(database, table, 0, 99)
         assert len(result) == 100
 
-    def test_get_all_songs_from_single_artist(self, database, table):
-        result = db.song_query(database, table, "The Bellas")
+    def test_get_all_songs_from_single_artist(self):
+        result = db.songs_from_artist("The Bellas")
         assert len(result) == 5
 
     def test_record_count_in_demo_db_unchanged(self, database, table):

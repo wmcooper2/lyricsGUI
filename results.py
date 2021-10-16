@@ -166,13 +166,16 @@ class Results(tk.Frame):
 
         self.clear_results_list()
         self.clear_lyrics_text()
+
+        # wrap in list if a single record was given
+        if isinstance(records, tuple):
+            records = [records]
+        
         if len(records) == 1:
-            artist = records[0].artist
-            song = records[0].song
-            if artist == "" and song == "":
+            if records[0].artist == "" and records[0].song == "":
                 self.list_.insert(0, "No matches found")
             elif lyrics:
-                self.list_.insert(0, f"'{song}' by {artist}")
+                self.list_.insert(0, f"'{records[0].song}' by {records[0].artist}")
                 self.show_lyrics(lyrics)
 
         elif len(records) > 100:

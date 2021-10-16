@@ -48,9 +48,9 @@ class LyricsTab(tk.Frame):
     def show_lyrics(self, data) -> None:
         self.results.show_lyrics(data)
     
-    def show_results(self, data: List[DisplayRecord], lyrics=None) -> None:
-        Results.search_results = data
-        self.results.show_results(data, lyrics=lyrics)
+    def show_results(self, records: List[DisplayRecord], lyrics=None) -> None:
+        Results.search_results = records
+        self.results.show_results(records, lyrics=lyrics)
 
     def stop_search(self) -> None:
         self.search.stop()
