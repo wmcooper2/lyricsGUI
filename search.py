@@ -214,18 +214,10 @@ class Search(tk.Frame):
         #find grammar within all songs written by one artist
         elif q.artist and not q.song and q.grammar:
             print("ARTIST None GRAMMAR")
-#                 artists = db_util.song_query(q.song)
             records = db_util.song_query2(q.artist)
-
-#             for record in records
-            matches = [re.search(q.grammar, record[3]) for record in records]
-            print(matches)
-
-    #             find grammar matches in these records
-    #             for the records that have the grammar
-        #             convert to DisplayRecords
-        #             records = [DisplayRecord(song[0], song[1]) for song in songs]
-#             show only the records with matches
+            #if match in lyrics, make DisplayRecord
+            matches = [DisplayRecord(record[1], record[2]) for record in records if re.search(q.grammar, record[3])]
+            self.show_results(matches)
 #             ask to save the results for future use
 #             self.show_results(records, lyrics=lyrics)
 
