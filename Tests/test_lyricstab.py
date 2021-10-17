@@ -21,7 +21,6 @@ class Data:
     demo_artist_fuzzy = "the bellas"
     demo_song_exact = "Toxic"
     demo_song_fuzzy = "toxic"
-    demo_lyrics_snippet = "Baby, can'"
     demo_lyrics_len = 1387
     demo_db_unique_artists_count = 6930
     demo_artist_and_songs = [('The Bellas', "Freedom! '90 x Cups"), ('The Bellas', "I Don't Like It, I Love I"), ('The Bellas', 'Toxic')]
@@ -35,20 +34,3 @@ class Data:
 @pytest.fixture
 def App():
     return LyricsTab(tk.Tk())
-
-
-@pytest.fixture
-def lyrics():
-    return db.artist_and_song("songs", Data.demo_artist_exact, Data.demo_song_exact)
-
-
-def test_lyrics(lyrics):
-    assert lyrics[:10] == Data.demo_lyrics_snippet
-    assert len(lyrics) == Data.demo_lyrics_len
-
-
-#TODO
-@pytest.mark.xfail
-def test_gap_search(App, lyrics):
-    assert App.distant_neighboring_words(lyrics, ["should", "wear"], 3) == str(True)
-

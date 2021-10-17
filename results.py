@@ -170,8 +170,10 @@ class Results(tk.Frame):
         # wrap in list if a single record was given
         if isinstance(records, tuple):
             records = [records]
-        
-        if len(records) == 1:
+
+        if records is None:
+            self.list_.insert(0, "No matches found")
+        elif len(records) == 1:
             if records[0].artist == "" and records[0].song == "":
                 self.list_.insert(0, "No matches found")
             elif lyrics:

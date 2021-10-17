@@ -1,13 +1,16 @@
 #std lib
+from collections import namedtuple
 import logging
 import re
 import sqlite3
-from typing import List, Text, Tuple
+from typing import Generator, List, Text, Tuple
 
 #custom
 import parse_urls as urlparser
 
 DATABASE = "Databases/lyrics.db"
+DBRecord = namedtuple("DBRecord", ["id", "artist", "song", "lyrics"])
+#TODO check type of return value from DB query: tuple? list?
 
 # csv.field_size_limit(sys.maxsize)  # Increase field size limit
 ################################################################################
@@ -19,35 +22,26 @@ def connect() -> Tuple[sqlite3.Cursor, sqlite3.Connection]:
     return cur, con
 
 #TODO: replaced with songs_from_artist()?
-def artist(table: Text, name: Text) -> List:
+# def artist(table: Text, name: Text) -> List:
+#     cur, con = connect()
+#     cur.execute(f"SELECT song FROM {table} WHERE artist=?", (name,))
+#     results = cur.fetchall()
+#     close_connection(cur, con)
+#     return [r[0] for r in results]
+
+
+# def artist_query(database: Text, table: Text, name: Text) -> list:
+#     """Get all artists who have a song 'name'."""
+#     cur, con = connect()
+#     cur.execute(f"SELECT artist,song FROM {table} WHERE song=?", (name,))
+#     results = cur.fetchall()
+#     close_connection(cur, con)
+#     return results
+
+
+def artists() -> List:
     cur, con = connect()
-    cur.execute(f"SELECT song FROM {table} WHERE artist=?", (name,))
-    results = cur.fetchall()
-    close_connection(cur, con)
-    return [r[0] for r in results]
-
-
-def artist_query(database: Text, table: Text, name: Text) -> list:
-    """Get all artists who have a song 'name'."""
-    cur, con = connect()
-    cur.execute(f"SELECT artist,song FROM {table} WHERE song=?", (name,))
-    results = cur.fetchall()
-    close_connection(cur, con)
-    return results
-
-
-#TODO: replaced with songs_from_artist()?
-def artist2(table: Text, name: Text) -> list:
-    cur, con = connect()
-    cur.execute(f"SELECT artist,song FROM {table} WHERE artist=?", (name,))
-    results = cur.fetchall()
-    close_connection(cur, con)
-    return results
-
-
-def artists(table: Text) -> List:
-    cur, con = connect()
-    cur.execute(f"SELECT DISTINCT artist FROM {table}")
+    cur.execute(f"SELECT DISTINCT artist FROM songs")
     result = cur.fetchall()
     close_connection(cur, con)
     return result
@@ -61,65 +55,76 @@ def artists(table: Text) -> List:
 #     return result
 
 
-def artist_and_song(table: Text, artist: Text, song: Text) -> Text:
-    """Returns the lyrics of a song by a specific artist."""
+def artist_and_song(artist: Text, song: Text) -> DBRecord:
+    """Returns a single element list of 'song' by 'artist'."""
 
     cur, con = connect()
-    cur.execute(f"SELECT lyrics FROM {table} WHERE artist=? AND song=?", (artist, song))
+    cur.execute(f"SELECT * FROM songs WHERE artist=? AND song=?", (artist, song))
     results = cur.fetchall()
-    close_connection(cur, con)
     try:
-        return results[0][0]
+        results = results[0]
     except IndexError:
-        return []
+        results = None
+    close_connection(cur, con)
+    if results:
+        return DBRecord(results[0], results[1], results[2], results[3])
+    else:
+        return DBRecord("", "", "", "")
 
 
-def index_search(database: Text, table: Text, index: int, step: int) -> List:
+def index_search(index: int, step: int) -> List:
     """Search for records starting at 'index'."""
 
     cur, con = connect()
-    cur.execute(f"SELECT * FROM {table} WHERE id>=? AND id<=?", (index, index+step))
+    cur.execute(f"SELECT * FROM songs WHERE id>=? AND id<=?", (index, index+step))
     records = cur.fetchall()
     close_connection(cur, con)
     return records
 
 
-#TODO, implement fuzzy search outside of db
-def fuzzy_songs_from_artist(artist: Text) -> List:
+#TODO, implement fuzzy search outside of db?
+#TODO, add DBRecord conversion decorator?
+def fuzzy_songs_from_artist(artist: Text) -> List[DBRecord]:
     """Fuzzy search of songs from 'artist'."""
 
     cur, con = connect()
-    sql_statement = f"SELECT artist,song FROM songs WHERE LOWER(artist)='{artist.lower()}'"
-    print("sql:", sql_statement)
+    sql_statement = f"SELECT * FROM songs WHERE LOWER(artist)='{artist.lower()}'"
     cur.execute(sql_statement)
     results = cur.fetchall()
+    if results:
+        return [DBRecord(result[0], result[1], result[2], result[3]) for result in results]
+    else:
+        return [DBRecord("", "", "", "")]
     close_connection(cur, con)
-    return results
 
 
-def fuzzy_artist_and_song(database: Text, table: Text, artist: Text, song: Text) -> Text:
-    """Fuzzy search for a 'song' by an 'artist'. Returns the lyrics."""
+def fuzzy_artist_and_song(artist: Text, song: Text) -> DBRecord:
+    """Fuzzy search for a 'song' by an 'artist'."""
 
     cur, con = connect()
-    sql_statement = f"SELECT lyrics FROM {table} WHERE LOWER(artist)='{artist.lower()}' AND LOWER(song)='{song.lower()}'"
+    sql_statement = f"SELECT * FROM songs WHERE LOWER(artist)='{artist.lower()}' AND LOWER(song)='{song.lower()}'"
     cur.execute(sql_statement)
-    results = cur.fetchall()
+    result = cur.fetchall()
+    result = result[0]
+    if result:
+        return DBRecord(result[0], result[1], result[2], result[3])
+    else:
+        return DBRecord("", "", "", "")
     close_connection(cur, con)
-    try:
-        return results[0][0]
-    except IndexError:
-        return []
 
 
-def fuzzy_song(database: Text, table: Text, song: Text) -> List:
+def fuzzy_song(song: Text) -> List[DBRecord]:
     """Fuzzy search for 'song'. Returns list of artists and the song."""
 
     cur, con = connect()
-    sql_statement = f"SELECT artist,song FROM {table} WHERE LOWER(song)='{song.lower()}'"
+    sql_statement = f"SELECT * FROM songs WHERE LOWER(song)='{song.lower()}'"
     cur.execute(sql_statement)
     results = cur.fetchall()
+    if results:
+        return [DBRecord(result[0], result[1], result[2], result[3]) for result in results]
+    else:
+        return [DBRecord("", "", "", "")]
     close_connection(cur, con)
-    return results
 
 
 #TODO: rename to be more flexible with the debug choice at the top of this module
@@ -136,22 +141,24 @@ def populate_db_with_demo_data() -> None:
             print(counter, end="\r")
 
 
-def songs_from_artist(artist: Text) -> List:
+def songs_from_artist(artist: Text) -> List[DBRecord]:
     """Get all songs from 'artist'."""
     
     cur, con = connect()
-    cur.execute(f"SELECT artist,song FROM songs WHERE artist=?", (artist,))
+    cur.execute(f"SELECT * FROM songs WHERE artist=?", (artist,))
     results = cur.fetchall()
+    results = [DBRecord(result[0], result[1], result[2], result[3]) for result in results]
     close_connection(cur, con)
     return results
 
 
-def artists_having_song(song: Text) -> List:
+def artists_having_song(song: Text) -> List[DBRecord]:
     """Get all artists who have a song with the same name."""
     
     cur, con = connect()
     cur.execute(f"SELECT * FROM songs WHERE song=?", (song,))
     results = cur.fetchall()
+    results = [DBRecord(result[0], result[1], result[2], result[3]) for result in results]
     close_connection(cur, con)
     return results
 
@@ -172,19 +179,20 @@ def mp_record_check(artist: Text, song: Text) -> bool:
 
 
 #TODO, test
-# def all_artists_and_songs(database: Text, table: Text) -> List:
-def all_artists_and_songs(table: Text) -> List:
-    """Get all records' artist and song fields."""
+def all_records() -> Generator:
+    """Get all records."""
     cur, con = lyrics_db()
-    cur.execute(f"SELECT * FROM {table}")
+    cur.execute(f"SELECT * FROM songs")
     records = cur.fetchall()
+    for record in records:
+        yield DBRecord(record[0], record[1], record[2], record[3])
     close_connection(cur, con)
     return records
 
 
-def record_check(table: Text, artist: Text, song: Text, cur: sqlite3.Cursor) -> bool:
+def record_check(artist: Text, song: Text, cur: sqlite3.Cursor) -> bool:
     """Checks if a record exists in the database """
-    cur.execute(f"SELECT artist FROM {table} WHERE artist=? AND song=?", (artist, song))
+    cur.execute(f"SELECT artist FROM songs WHERE artist=? AND song=?", (artist, song))
     results = cur.fetchall()
     return bool(results)
 
@@ -208,10 +216,9 @@ def close_connection(cur: sqlite3.Cursor, con: sqlite3.Connection) -> None:
     con.close()
 
 
-def record_count(database: Text, table: Text) -> int:
+def record_count() -> int:
     cur, con = lyrics_db()
-    sql_statement = f"SELECT COUNT(*) FROM {table}"
-    cur.execute(sql_statement)
+    cur.execute("SELECT COUNT(*) FROM songs")
     result = cur.fetchall()[0][0]
     close_connection(cur, con)
     return result

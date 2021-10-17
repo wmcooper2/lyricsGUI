@@ -20,8 +20,8 @@ from results import Results
 FileMatch = namedtuple("FileMatch", ["file", "match"])
 Query = namedtuple("Query", ["artist", "song", "grammar"])
 DisplayRecord = namedtuple("DisplayRecord", ["artist", "song"])
+DBRecord = namedtuple("DBRecord", ["id", "artist", "song", "lyrics"])
 logging.basicConfig(filename='Logs/errors.log', encoding='utf-8', level=logging.DEBUG)
-
 
 def timing(function):
     """Timing decorator."""
@@ -44,8 +44,8 @@ class Search(tk.Frame):
         self.cancel_flag = False
         self.search_in_progress = False
         self.index = 0
-        self.song_count = db_util.record_count("Databases/lyrics.db", "songs")
-        self.artist_count = db_util.artists("songs")
+        self.song_count = db_util.record_count()
+        self.artist_count = db_util.artists()
 
 #         self.root = ttk.LabelFrame(master, text="Search")
         self.root = ttk.Frame(master)
@@ -139,6 +139,8 @@ class Search(tk.Frame):
     def cancel_search(self) -> bool:
         """Cancel the current search."""
 
+        #TODO, possible circular ref with exact search GRAMMAR
+
         if self.search_in_progress:
             message = "Another search is currently in process.\
                     Do you wish to cancel that search and start a new one?"
@@ -195,8 +197,125 @@ class Search(tk.Frame):
         self.slider.state(["!disabled"])
 
 
+    def exact_all_three(self, query: Query) -> Tuple[DisplayRecord, Optional[Text]]:
+        """Perform an exact search for all the query's paramaters."""
+
+        lyrics = None
+        record = db_util.artist_and_song(query.artist, query.song)
+        match = re.search(query.grammar, record.lyrics)
+        if match:
+            records = DisplayRecord(record.artist, record.song)
+            lyrics = record.lyrics
+        else:
+            records = DisplayRecord("", "")
+        return records, lyrics
+        #TODO: if any match, find all matches and highlight
+
+
+    def exact_artist_song(self, query: Query) -> Tuple[DisplayRecord, Optional[Text]]:
+        """Perform exact search for a song written by an artist."""
+
+        lyrics = None
+        record = db_util.artist_and_song(query.artist, query.song)
+        if record:
+            records = DisplayRecord(record.artist, record.song)
+        else:
+            records = DisplayRecord("", "")
+        return records, lyrics
+
+
+    def exact_artist_grammar(self, query: Query) -> Tuple[List[DisplayRecord], Optional[Text]]:
+        """Find exact grammar in all of the artist's songs."""
+
+        lyrics = None
+        records = db_util.songs_from_artist(query.artist)
+        records = [DisplayRecord(record.artist, record.song) for record in records if re.search(query.grammar, record.lyrics)]
+        if len(records) == 1:
+            lyrics = records.lyrics
+        if not records:
+            records = [DisplayRecord("", "")]
+        return records, lyrics
+
+
+    def exact_song_grammar(self, query: Query) -> Tuple[List[DisplayRecord], Optional[Text]]:
+        """Search for grammar within any song sharing the same name."""
+
+        lyrics = None
+        records = db_util.artists_having_song(query.song)
+        if records:
+            records = [DisplayRecord(record[1], record[2]) for record in records if re.search(query.grammar, record[3])]
+#         else:
+        if len(records) == 1:
+            lyrics = records.lyrics
+        if not records:
+            records = [DisplayRecord("", "")]
+        return records, lyrics
+
+
+    @timing
+#     def grammar_search_thread_manager(self, query: Query) -> Tuple[List[DBRecord], Optional[Text]]:
+    def grammar_search_thread_manager(self, query: Query) -> None:
+        """Threaded search for grammar patterns."""
+
+        records = set()
+        self.cancel_flag = False
+        with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
+            futures = {executor.submit(self.simple_re, record, query.grammar) for record in db_util.all_records()}
+            for future in concurrent.futures.as_completed(futures):
+                record = None
+                try:
+                    record = future.result()
+                except TypeError as e:
+                    logging.debug("TypeError: Threading...")
+                if record is not None:
+                    records.add(record)
+
+        records = list(records)
+        records.sort()
+        self.toggle_fuzzy_search()
+        self.show_results(records)
+
+    def simple_re(self, record: DBRecord, grammar: Text) -> Optional[DisplayRecord]:
+        """Simple regex search through record's lyrics for 'grammar'."""
+        self.tick_progress()
+        if re.search(grammar, record.lyrics):
+            return DisplayRecord(record.artist, record.song)
+
+
+#     def exact_grammar(self, query: Query) -> Tuple[List[DisplayRecord], Optional[Text]]:
+    #works, but this thread manager version runs really slow...
+    def exact_grammar(self, query: Query) -> None:
+        """Find exact grammar in any song by any artist."""
+
+        self.update_progress_label(f"Searching for: '{query.grammar}'...")
+        self.clear_lyrics()
+        self.clear_results()
+        self.clear_search()
+        self.toggle_fuzzy_search()
+        
+        #TODO, combine with grammar thread manager
+
+        try:
+            # create main thread to manage the other threads
+            manager_thread = threading.Thread(target=self.grammar_search_thread_manager, args=(query,))
+            manager_thread.start()
+#             results = manager_thread.join()
+#             print("RESULTS thread manager:", results)
+        except RuntimeError:
+            logging.debug(f"RuntimeError, exact_grammar(): pattern={pattern}")
+            print()
+
+        #works, but blocks the main app.
+#         for record in db_util.all_records():
+#             if re.search(query.grammar, record.lyrics):
+#                 records.append(DisplayRecord(record.artist, record.song))
+#         if not records:
+#             records = [DisplayRecord("", "")]
+#         return records, lyrics
+
+
     def exact_search(self, query: Query) -> Tuple[List[DisplayRecord], Optional[Text]]:
-        """Perform an exact search on all items in 'query'."""
+        """Perform an exact search on 'query'."""
 
         artist = query.artist
         song = query.song
@@ -204,72 +323,38 @@ class Search(tk.Frame):
         lyrics = None
         records = None
 
-        #ARTIST     SONG    GRAMMAR
-        #search for a song written by one artist, then search for grammar
         if artist and song and grammar:
-            lyrics = db_util.artist_and_song("songs", artist, song)
-            match = re.search(grammar, lyrics)
-            #TODO: if any match, find all matches and highlight
-#             words = grammar.split(" ")
-            records = DisplayRecord(artist, song)
+            records, lyrics = self.exact_all_three(query)
 
-        #ARTIST     SONG
-        #find artist and song
         elif artist and song and not grammar:
-            lyrics = db_util.artist_and_song("songs", artist, song)
-            print("ARTIST SONG None", lyrics[:100])
-            if lyrics:
-                records = DisplayRecord(artist, song)
-            else:
-                records = DisplayRecord("", "")
+            records, lyrics = self.exact_artist_song(query)
 
-        #ARTIST             GRAMMAR
-        #find grammar within all songs written by one artist
         elif artist and not song and grammar:
-            print("ARTIST None GRAMMAR")
-            records = db_util.songs_from_artist(artist)
-            records = [DisplayRecord(record[1], record[2]) for record in records if re.search(grammar, record[3])]
-
+            records, lyrics = self.exact_artist_grammar(query)
 #             if self.ask_to_save():
 #                 self.save_results(records)
 
-        #           SONG    GRAMMAR
-        #match songs, then search for grammar within those songs
         elif not artist and song and grammar:
-            print("None SONG GRAMMAR")
-            records = db_util.artists_having_song(song)
-            records = [DisplayRecord(record[1], record[2]) for record in records if re.search(grammar, record[3])]
-            #TODO, this block not finished, need to search through grammar
+            records, lyrics = self.exact_song_grammar(query)
 
-        #                   GRAMMAR
-        #search only for grammar in all songs
         elif not artist and not song and grammar:
-            #TODO: rethink cancelling thread ability
-            print("None None GRAMMAR:", grammar)
-            search_in_progress = False
-            if search_in_progress:
-                message = self.long_search_message()
-                if message:
-                    self.word_search(grammar, self.song_count)
-            else:
-                message = self.long_search_message()
-                if message:
-                    self.word_search(grammar, self.song_count)
-            #TODO, set records var
+            self.exact_grammar(query)
+            records = DisplayRecord("Searching...", "")
+            lyrics = None
 
         #           SONG
         #search for all records with the same song name
         elif not artist and song and not grammar:
-            records = db_util.artist_query("Databases/lyrics.db", "songs", song)
-            print("None SONG None:", records[0])
-            records = [DisplayRecord(record[0], record[1]) for record in records]
+            print("None SONG None")
+            records = db_util.artists_having_song(song)
+            records = [DisplayRecord(record.artist, record.song) for record in records]
 
         #ARTIST
         #all songs by a single artist
         elif artist and not song and not grammar:
-            records = db_util.artist2("songs", artist)
             print("ARTIST None None")
-            records = [DisplayRecord(records[0], records[1]) for records in records]
+            records = db_util.songs_from_artist(artist)
+            records = [DisplayRecord(record.artist, record.song) for record in records]
 
         #NONE     NONE    NONE
         #ask user to input anything
@@ -410,7 +495,7 @@ class Search(tk.Frame):
     def long_search_message(self) -> bool:
         """Displays 'yes/no' confirmation to user if the search may take a long time."""
         
-        message = "This may take up to 30 minutes.\
+        message = "Complex searches may take up to 10 minutes.\
                 You may continue to use the program to search while waiting.\
                 The word entry field and word gap option will be\
                 disabled until the search is completed.\
@@ -487,11 +572,11 @@ class Search(tk.Frame):
         self.regex = regex
         self.cancel_flag = False
         results = set()
-        files = db_util.all_artists_and_songs("songs")
+        records = db_util.all_records()
         #iterate over db records
 
         with concurrent.futures.ThreadPoolExecutor(max_workers=5, thread_name_prefix=str(regex)) as executor:
-            futures = {executor.submit(self.regex_search, file_) for file_ in files}
+            futures = {executor.submit(self.regex_search, record) for record in records}
             for future in concurrent.futures.as_completed(futures):
                 result = None
                 try:
@@ -506,7 +591,10 @@ class Search(tk.Frame):
 #         self.update_progress_label(f"Search completed in {round(time_taken, 3)} minutes. {result_count} matches found.")
         self.toggle_fuzzy_search()
         records = [DisplayRecord(result[1], result[2]) for result in results]
+
+        #TODO, return results instead of calling show
         self.show_results(records)
+
 
 
     def tick_progress(self) -> None:
@@ -539,7 +627,8 @@ class Search(tk.Frame):
         self.slider_label["text"] = f"Word gap: {int(float(value))}"
 
 
-    def word_search(self, pattern: str, limit: int):
+    #TODO, move inside exact_grammar()?
+    def word_search(self, pattern: Text, limit: int):
         """Search for 'pattern' in all lyrics."""
 
         #set up the gui for threaded search
