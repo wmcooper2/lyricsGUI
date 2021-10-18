@@ -208,7 +208,7 @@ class TestExactSongGrammar:
         assert lyrics == None
 
 
-@pytest.mark.xfail
+@pytest.mark.skip
 class TestExactGrammar:
     """Test entry pattern None-None-Grammar."""
     def test_search_grammar_result_is_Display_Record(self, Search, all_three):
@@ -217,5 +217,57 @@ class TestExactGrammar:
         record = result[0]
         assert isinstance(record, search.DisplayRecord)
 
+
+
+class TestExactSong:
+    """Test entry pattern None-Song-None"""
+
+
+    def test_search_song_result_is_Display_Record(self, Search, all_three):
+        result, lyrics = Search.exact_song(all_three)
+        record = result[0]
+        assert isinstance(record, search.DisplayRecord)
+
+    def test_search_artist_grammar_returns_2_list_result(self, Search, all_three):
+        result, lyrics = Search.exact_song(all_three)
+        record = result[0]
+        assert len(result) == 5
+        assert isinstance(record, search.DisplayRecord)
+
+    def test_search_song_result_is_empty_record_on_bad_song(self, Search, Query, bad_entry):
+        q = Query("The Police", bad_entry, "red light")
+        result, lyrics = Search.exact_song(q)
+        record = result[0]
+        assert len(result) == 1
+        assert isinstance(record, search.DisplayRecord)
+        assert record.artist == ""
+        assert record.song == ""
+        assert lyrics == None
+
+
+class TestExactArtist:
+    """Test entry pattern Artist-None-None"""
+
+
+    def test_search_artist_result_is_Display_Record(self, Search, all_three):
+        result, lyrics = Search.exact_song(all_three)
+        record = result[0]
+        assert isinstance(record, search.DisplayRecord)
+
+    def test_search_artist_returns_2_list_result(self, Search, all_three):
+        result, lyrics = Search.exact_artist(all_three)
+        record = result[0]
+        assert len(result) == 134
+        assert isinstance(record, search.DisplayRecord)
+
+    def test_search_artist_result_is_empty_record_on_bad_artist(self, Search, Query, bad_entry):
+        q = Query(bad_entry, "Roxanne", "red light")
+        result, lyrics = Search.exact_artist(q)
+        record = result[0]
+        assert len(result) == 1
+        assert isinstance(record, search.DisplayRecord)
+        assert record.artist == ""
+        assert record.song == ""
+        assert lyrics == None
 
 

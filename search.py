@@ -275,6 +275,7 @@ class Search(tk.Frame):
         self.toggle_fuzzy_search()
         self.show_results(records)
 
+
     def simple_re(self, record: DBRecord, grammar: Text) -> Optional[DisplayRecord]:
         """Simple regex search through record's lyrics for 'grammar'."""
         self.tick_progress()
@@ -314,6 +315,39 @@ class Search(tk.Frame):
 #         return records, lyrics
 
 
+    def exact_song(self, query: Query) -> Tuple[List[DisplayRecord], Optional[Text]]:
+        """Search for all songs that share the same name."""
+
+        lyrics = None
+        records = db_util.artists_having_song(query.song)
+        if not records:
+            records = [DisplayRecord("", "")]
+        elif len(records) == 1:
+            lyrics = records.lyrics
+            records = DisplayRecord(records.artist, records.song)
+        else:
+            records = [DisplayRecord(record.artist, record.song) for record in records]
+        return records, lyrics
+
+
+    def exact_artist(self, query: Query) -> Tuple[List[DisplayRecord], Optional[Text]]:
+        """Search for all songs written by one artist."""
+
+        lyrics = None
+        records = db_util.songs_from_artist(query.artist)
+        if not records:
+            records = [DisplayRecord("", "")]
+        elif len(records) == 1:
+            lyrics = records.lyrics
+            records = DisplayRecord(records.artist, records.song)
+        else:
+            records = [DisplayRecord(record.artist, record.song) for record in records]
+        return records, lyrics
+
+
+
+
+
     def exact_search(self, query: Query) -> Tuple[List[DisplayRecord], Optional[Text]]:
         """Perform an exact search on 'query'."""
 
@@ -342,24 +376,13 @@ class Search(tk.Frame):
             records = DisplayRecord("Searching...", "")
             lyrics = None
 
-        #           SONG
-        #search for all records with the same song name
         elif not artist and song and not grammar:
-            print("None SONG None")
-            records = db_util.artists_having_song(song)
-            records = [DisplayRecord(record.artist, record.song) for record in records]
+            records, lyrics = self.exact_song(query)
 
-        #ARTIST
-        #all songs by a single artist
         elif artist and not song and not grammar:
-            print("ARTIST None None")
-            records = db_util.songs_from_artist(artist)
-            records = [DisplayRecord(record.artist, record.song) for record in records]
+            records, lyrics = self.exact_artist(query)
 
-        #NONE     NONE    NONE
-        #ask user to input anything
         else:
-            print("None None None")
             self.input_something_message()
 
         return records, lyrics
