@@ -6,7 +6,7 @@ import tkinter as tk
 import pytest
 
 #custom
-import db_util as db
+from database import Database
 
 
 #TODO: Class scoped DB connection
@@ -20,67 +20,73 @@ class TestLyricsDB:
 #         return sqlite3.Connection(tempdir)
 #         return db.lyrics_db()
 
-    @pytest.fixture
-    def db_connection(self, database):
-        return db.lyrics_db()
+#     @pytest.fixture
+#     def db_connection(self, database):
+#         return db.
 
-    @pytest.fixture
+    @pytest.fixture(scope="module")
     def database(self):
-        return "lyrics"
+        db = Database()
+        return db
 
-    def test_db_connection(self, db_connection):
-        cur, con = db_connection
+#     @pytest.fixture(scope="module")
+#     def cursor(database):
+#         return database.connection.cursor()
+
+    def test_db_connection(self, database):
+        cur = database.connection.cursor()
         assert isinstance(cur, sqlite3.Cursor)
-        assert isinstance(con, sqlite3.Connection)
-        db.close_connection(cur, con)
+#         assert isinstance(con, sqlite3.Connection)
+#         db.close_connection(cur, con)
 
-    def test_connect_to_database_with_name(self):
-        cur, con = db.lyrics_db()
-        assert isinstance(cur, sqlite3.Cursor)
-        assert isinstance(con, sqlite3.Connection)
-        db.close_connection(cur, con)
+#     def test_connect_to_database_with_name(self):
+#         cur, con = db.lyrics_db()
+#         assert isinstance(cur, sqlite3.Cursor)
+#         assert isinstance(con, sqlite3.Connection)
+# #         db.close_connection(cur, con)
 
-    def test_record_exists_in_db(self, db_connection):
-        cur, con = db_connection
-        assert db.record_check("The Police", "Roxanne", cur) is True
+    def test_record_exists_in_db(self, database):
+        cur = database.connection.cursor()
+        assert database.record_check("The Police", "Roxanne", cur) is True
 
-    def test_record_count_in_demo_db_unchanged(self):
+    def test_record_count_in_demo_db_unchanged(self, database):
         #TODO, add db fixture
-        assert db.record_count() == 616312
+#         cur = database.connection.cursor()
+        assert database.record_count() == 616312
 
     #testing get songs from artist
 #     def test_get_song_name_from_exact_artist_query(self):
 #         result = db.artist(table, "The Bellas")
 #         assert result == ["Freedom! '90 x Cups", "I Don't Like It, I Love I", 'Toxic', 'Cake by the Ocean', 'Cheap Thrills']
 
-    def test_get_list_of_unique_artists(self):
-        result = db.artists()
+    def test_get_list_of_unique_artists(self, database):
+        result = database.artists()
         assert len(result) == 66483
 
-    def test_get_lyrics_with_artist_and_song_query(self):
-        result = db.artist_and_song("The Police", "Roxanne")
+    def test_get_lyrics_with_artist_and_song_query(self, database):
+        result = database.artist_and_song("The Police", "Roxanne")
         assert result.artist == "The Police"
         assert result.song == "Roxanne"
 
-    def test_get_100_records(self):
-        result = db.index_search(0, 99)
+    def test_get_100_records(self, database):
+        result = database.index_search(0, 99)
         assert len(result) == 100
 
-    def test_get_all_songs_from_single_artist(self):
-        result = db.songs_from_artist("The Police")
+    def test_get_all_songs_from_single_artist(self, database):
+        result = database.songs_from_artist("The Police")
         assert len(result) == 134
 
-    def test_get_songs_from_fuzzy_artist_query(self):
-        result = db.fuzzy_songs_from_artist("the police")
+    def test_get_songs_from_fuzzy_artist_query(self, database):
+        result = database.fuzzy_songs_from_artist("the police")
         assert len(result) == 134
 
-    def test_get_lyrics_from_fuzzy_artist_and_song_query(self):
-        result = db.fuzzy_artist_and_song("the police", "roxanne")
+    def test_get_lyrics_from_fuzzy_artist_and_song_query(self, database):
+        result = database.fuzzy_artist_and_song("the police", "roxanne")
         assert result.artist == "The Police"
         assert result.song == "Roxanne"
 
-    def test_get_all_records_which_share_the_same_song_name_fuzzy_song_query(self):
-        result = db.fuzzy_song("roxanne")
+    def test_get_all_records_which_share_the_same_song_name_fuzzy_song_query(self, database):
+        result = database.fuzzy_song("roxanne")
         assert len(result) == 5
 
 #     def test_get_artists_who_share_the_same_songs_name(self):
@@ -93,8 +99,8 @@ class TestLyricsDB:
 
 
 
-    def test_all_records_returns_generator(self):
+    def test_all_records_returns_generator(self, database):
         #hacky workaround for not using a generator class type
-        generator = db.all_records()
+        generator = database.all_records()
         assert hasattr(generator, "__next__")
         assert hasattr(generator, "__iter__")

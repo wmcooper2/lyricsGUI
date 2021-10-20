@@ -211,6 +211,7 @@ class TestExactSongGrammar:
 @pytest.mark.skip
 class TestExactGrammar:
     """Test entry pattern None-None-Grammar."""
+
     def test_search_grammar_result_is_Display_Record(self, Search, all_three):
         #TODO: mock Search.clear_lyrics() because it calls the same method in its master
         result, lyrics = Search.exact_grammar(all_three)
@@ -221,7 +222,6 @@ class TestExactGrammar:
 
 class TestExactSong:
     """Test entry pattern None-Song-None"""
-
 
     def test_search_song_result_is_Display_Record(self, Search, all_three):
         result, lyrics = Search.exact_song(all_three)
@@ -247,7 +247,6 @@ class TestExactSong:
 
 class TestExactArtist:
     """Test entry pattern Artist-None-None"""
-
 
     def test_search_artist_result_is_Display_Record(self, Search, all_three):
         result, lyrics = Search.exact_song(all_three)

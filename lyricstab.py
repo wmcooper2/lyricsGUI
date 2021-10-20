@@ -1,7 +1,9 @@
 #std lib
 from collections import namedtuple
+import logging
 import pathlib
 from pprint import pprint
+import re
 import time
 import tkinter as tk
 from tkinter import ttk
@@ -14,6 +16,7 @@ from search import Search
 
 
 DisplayRecord = namedtuple("DisplayRecord", ["artist", "song"])
+logging.basicConfig(filename='Logs/errors.log', encoding='utf-8', level=logging.DEBUG)
 
 
 class LyricsTab(tk.Frame):
@@ -42,10 +45,45 @@ class LyricsTab(tk.Frame):
         self.results.clear_results()
         self.results.clear_results_list()
 
+    def handle_results_click(self, option: Text, list_: List[Text]) -> None:
+        index = list_.curselection()
+
+        try:
+            selection = option.widget.get(index)
+        except tk.TclError:
+            logging.debug(f"TypeError: handle_results_click(), {selection}")
+        song_match = None
+
+        print("selection:", selection)
+        if selection:
+            try:
+                song_match = re.match('\".*?\"', selection)
+                #TODO: matching not working
+                print("song_match:", song_match)
+            except TypeError:
+                logging.debug(f"TypeError: handle_results_click(), couldn't extract song_name from quotes, {selection}")
+                song_match = None
+        song = None
+        artist = None
+
+        if song_match:
+            song = song_match.group(0)
+            song = selection[1:song_match.end()-1]
+            print("song", song)
+
+            # drop string through quotes
+            by = " by "
+            artist = selection[song_match.end()+len(by):]
+#             lyrics = db_util.artist_and_song("songs", artist, song)
+            lyrics = self.search.db.artist_and_song("songs", artist, song)
+
+            print("lyrics:", lyrics)
+            self.show_lyrics(lyrics)
+
     def save_results(self, data: List) -> None:
         self.results.save_results(data)
 
-    def show_lyrics(self, data) -> None:
+    def show_lyrics(self, data: List) -> None:
         self.results.show_lyrics(data)
     
     def show_results(self, records: List[DisplayRecord], lyrics=None) -> None:

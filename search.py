@@ -13,7 +13,8 @@ from tkinter import ttk
 from typing import Any, List, Optional, Text, Tuple
 
 # custom
-import db_util
+# import db_util
+from database import Database
 from results import Results
 
 
@@ -22,6 +23,8 @@ Query = namedtuple("Query", ["artist", "song", "grammar"])
 DisplayRecord = namedtuple("DisplayRecord", ["artist", "song"])
 DBRecord = namedtuple("DBRecord", ["id", "artist", "song", "lyrics"])
 logging.basicConfig(filename='Logs/errors.log', encoding='utf-8', level=logging.DEBUG)
+
+DATABASE = Database()
 
 def timing(function):
     """Timing decorator."""
@@ -35,6 +38,7 @@ def timing(function):
 
 
 class Search(tk.Frame):
+
     def __init__(self, master):
         super().__init__()
 
@@ -44,8 +48,9 @@ class Search(tk.Frame):
         self.cancel_flag = False
         self.search_in_progress = False
         self.index = 0
-        self.song_count = db_util.record_count()
-        self.artist_count = db_util.artists()
+        self.db = DATABASE
+        self.song_count = self.db.record_count()
+        self.artist_count = self.db.artists()
 
 #         self.root = ttk.LabelFrame(master, text="Search")
         self.root = ttk.Frame(master)
@@ -120,6 +125,10 @@ class Search(tk.Frame):
         self.progress_bar = ttk.Progressbar(self.root, length=800, maximum=self.song_count, mode="determinate", variable=self.progress)
         self.progress_bar.grid(row=2, column=0, columnspan=9)
         self.artist.focus()
+
+#     def __post_init(self) -> None:
+#         self.song_count = self.db.record_count()
+#         self.artist_count = self.db.artists()
 
 
     def ask_to_save(self, string: Text = None) -> bool:
@@ -201,7 +210,7 @@ class Search(tk.Frame):
         """Perform an exact search for all the query's paramaters."""
 
         lyrics = None
-        record = db_util.artist_and_song(query.artist, query.song)
+        record = self.db.artist_and_song(query.artist, query.song)
         match = re.search(query.grammar, record.lyrics)
         if match:
             records = DisplayRecord(record.artist, record.song)
@@ -216,7 +225,7 @@ class Search(tk.Frame):
         """Perform exact search for a song written by an artist."""
 
         lyrics = None
-        record = db_util.artist_and_song(query.artist, query.song)
+        record = self.db.artist_and_song(query.artist, query.song)
         if record:
             records = DisplayRecord(record.artist, record.song)
         else:
@@ -228,7 +237,7 @@ class Search(tk.Frame):
         """Find exact grammar in all of the artist's songs."""
 
         lyrics = None
-        records = db_util.songs_from_artist(query.artist)
+        records = self.db.songs_from_artist(query.artist)
         records = [DisplayRecord(record.artist, record.song) for record in records if re.search(query.grammar, record.lyrics)]
         if len(records) == 1:
             lyrics = records.lyrics
@@ -241,7 +250,7 @@ class Search(tk.Frame):
         """Search for grammar within any song sharing the same name."""
 
         lyrics = None
-        records = db_util.artists_having_song(query.song)
+        records = self.db.artists_having_song(query.song)
         if records:
             records = [DisplayRecord(record[1], record[2]) for record in records if re.search(query.grammar, record[3])]
 #         else:
@@ -260,7 +269,7 @@ class Search(tk.Frame):
         records = set()
         self.cancel_flag = False
         with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
-            futures = {executor.submit(self.simple_re, record, query.grammar) for record in db_util.all_records()}
+            futures = {executor.submit(self.simple_re, record, query.grammar) for record in self.db.all_records()}
             for future in concurrent.futures.as_completed(futures):
                 record = None
                 try:
@@ -307,7 +316,7 @@ class Search(tk.Frame):
             print()
 
         #works, but blocks the main app.
-#         for record in db_util.all_records():
+#         for record in self.db.all_records():
 #             if re.search(query.grammar, record.lyrics):
 #                 records.append(DisplayRecord(record.artist, record.song))
 #         if not records:
@@ -319,7 +328,7 @@ class Search(tk.Frame):
         """Search for all songs that share the same name."""
 
         lyrics = None
-        records = db_util.artists_having_song(query.song)
+        records = self.db.artists_having_song(query.song)
         if not records:
             records = [DisplayRecord("", "")]
         elif len(records) == 1:
@@ -334,7 +343,7 @@ class Search(tk.Frame):
         """Search for all songs written by one artist."""
 
         lyrics = None
-        records = db_util.songs_from_artist(query.artist)
+        records = self.db.songs_from_artist(query.artist)
         if not records:
             records = [DisplayRecord("", "")]
         elif len(records) == 1:
@@ -409,11 +418,11 @@ class Search(tk.Frame):
         #ARTIST             GRAMMAR
         elif artist and not song and grammar:
             #doesn't make sense
-            artists = db_util.fuzzy_song(song)
+            artists = self.db.fuzzy_song(song)
 
         #           SONG    GRAMMAR
         elif not artist and song and grammar:
-            artists = db_util.fuzzy_song(song)
+            artists = self.db.fuzzy_song(song)
 
         #                   GRAMMAR
         elif not artist and not song and grammar:
@@ -422,11 +431,11 @@ class Search(tk.Frame):
 
         #           SONG
         elif not artist and song and not grammar:
-            artists = db_util.fuzzy_song("Databases/lyrics.db", "songs", song)
+            artists = self.db.fuzzy_song("Databases/lyrics.db", "songs", song)
 
         #ARTIST
         elif artist and not song and not grammar:
-            songs = db_util.fuzzy_songs_from_artist(artist)
+            songs = self.db.fuzzy_songs_from_artist(artist)
             records = [DisplayRecord(records[0], records[1]) for records in records]
 
         #NONE     NONE    NONE
@@ -486,7 +495,8 @@ class Search(tk.Frame):
 
     def gap_search(self, words: Text="", gap: int=0) -> List:
         """Searches for all 'words' with max 'gap' between any neighboring pair of words."""
-        #TODO, define return type
+        #TODO, define return type, use namedtuple
+
 
         def _gap_search_result(result: str) -> bool:
             """Convert the result into a boolean."""
@@ -499,7 +509,7 @@ class Search(tk.Frame):
         #start here
         if words:
             gap = int(gap)
-            for i, artist, song, lyrics in db_util.index_search(self.index, self.step):
+            for i, artist, song, lyrics in self.db.index_search(self.index, self.step):
                 if lyrics is not None and words is not None:
                     lyrics = lyrics.split(" ")
                     words = words.split(" ")
@@ -595,7 +605,7 @@ class Search(tk.Frame):
         self.regex = regex
         self.cancel_flag = False
         results = set()
-        records = db_util.all_records()
+        records = self.db.all_records()
         #iterate over db records
 
         with concurrent.futures.ThreadPoolExecutor(max_workers=5, thread_name_prefix=str(regex)) as executor:

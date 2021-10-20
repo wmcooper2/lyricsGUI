@@ -10,7 +10,6 @@ import parse_urls as urlparser
 
 DATABASE = "Databases/lyrics.db"
 DBRecord = namedtuple("DBRecord", ["id", "artist", "song", "lyrics"])
-#TODO check type of return value from DB query: tuple? list?
 
 # csv.field_size_limit(sys.maxsize)  # Increase field size limit
 ################################################################################
@@ -21,38 +20,12 @@ def connect() -> Tuple[sqlite3.Cursor, sqlite3.Connection]:
     cur = con.cursor()
     return cur, con
 
-#TODO: replaced with songs_from_artist()?
-# def artist(table: Text, name: Text) -> List:
-#     cur, con = connect()
-#     cur.execute(f"SELECT song FROM {table} WHERE artist=?", (name,))
-#     results = cur.fetchall()
-#     close_connection(cur, con)
-#     return [r[0] for r in results]
-
-
-# def artist_query(database: Text, table: Text, name: Text) -> list:
-#     """Get all artists who have a song 'name'."""
-#     cur, con = connect()
-#     cur.execute(f"SELECT artist,song FROM {table} WHERE song=?", (name,))
-#     results = cur.fetchall()
-#     close_connection(cur, con)
-#     return results
-
-
 def artists() -> List:
     cur, con = connect()
     cur.execute(f"SELECT DISTINCT artist FROM songs")
     result = cur.fetchall()
     close_connection(cur, con)
     return result
-
-
-# def artist_count(database: Text) -> int:
-#     cur, con = connect()
-#     cur.execute('SELECT COUNT(DISTINCT artist) FROM demo')
-#     result = cur.fetchall()[0][0]
-#     close_connection(cur, con)
-#     return result
 
 
 def artist_and_song(artist: Text, song: Text) -> DBRecord:
@@ -83,7 +56,6 @@ def index_search(index: int, step: int) -> List:
 
 
 #TODO, implement fuzzy search outside of db?
-#TODO, add DBRecord conversion decorator?
 def fuzzy_songs_from_artist(artist: Text) -> List[DBRecord]:
     """Fuzzy search of songs from 'artist'."""
 

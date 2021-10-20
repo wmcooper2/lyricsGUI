@@ -13,7 +13,7 @@ from tkinter.scrolledtext import ScrolledText
 from typing import Text, List
 
 #custom
-import db_util
+# import db_util
 
 
 DisplayRecord = namedtuple("DisplayRecord", ["artist", "song"])
@@ -27,6 +27,7 @@ class Results(tk.Frame):
     def __init__(self, master):
         super().__init__()
 #         self.root = ttk.LabelFrame(master, text="Results")
+        self.master = master
         self.root = ttk.LabelFrame(master)
         self.root.grid(row=2, column=0, sticky=tk.E+tk.W)
         self.root.grid_columnconfigure(0, weight=1)  # allows expansion of columns and rows?
@@ -95,33 +96,34 @@ class Results(tk.Frame):
 
     def handle_results_click(self, option: Text) -> None:
         """Load the selected song's lyrics into the lyrics box."""
+        self.master.handle_results_click(option, self.list_)
 
-        selection = None
-        index = self.list_.curselection()
-
-        try:
-            selection = option.widget.get(index)
-        except tk.TclError:
-            logging.debug(f"TypeError: handle_results_click(), {selection}")
-        song_match = None
-
-        if selection:
-            try:
-                song_match = re.match('\".*?\"', selection)
-            except TypeError:
-                logging.debug(f"TypeError: handle_results_click(), couldn't extract song_name from quotes, {selection}")
-                song_match = None
-        song = None
-        artist = None
-
-        if song_match:
-            song = song_match.group(0)
-            song = selection[1:song_match.end()-1]
-            # drop string through quotes
-            by = " by "
-            artist = selection[song_match.end()+len(by):]
-            lyrics = db_util.artist_and_song("songs", artist, song)
-            self.show_lyrics(lyrics)
+#        selection = None
+#        index = self.list_.curselection()
+#
+#        try:
+#            selection = option.widget.get(index)
+#        except tk.TclError:
+#            logging.debug(f"TypeError: handle_results_click(), {selection}")
+#        song_match = None
+#
+#        if selection:
+#            try:
+#                song_match = re.match('\".*?\"', selection)
+#            except TypeError:
+#                logging.debug(f"TypeError: handle_results_click(), couldn't extract song_name from quotes, {selection}")
+#                song_match = None
+#        song = None
+#        artist = None
+#
+#        if song_match:
+#            song = song_match.group(0)
+#            song = selection[1:song_match.end()-1]
+#            # drop string through quotes
+#            by = " by "
+#            artist = selection[song_match.end()+len(by):]
+#            lyrics = db_util.artist_and_song("songs", artist, song)
+#            self.show_lyrics(lyrics)
 
 
     def highlight_lyrics(self, lyrics: Text, words: List) -> None:
