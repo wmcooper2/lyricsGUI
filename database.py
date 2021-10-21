@@ -160,8 +160,6 @@ class Database():
         return results
 
 
-
-
     #TODO, test
     def mp_record_check(self, artist: Text, song: Text) -> bool:
         """Checks if a record exists in the database """

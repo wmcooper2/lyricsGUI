@@ -285,10 +285,11 @@ class Search(tk.Frame):
         self.show_results(records)
 
 
-    def simple_re(self, record: DBRecord, grammar: Text) -> Optional[DisplayRecord]:
+    def simple_re(self, record: DBRecord, query: Query) -> Optional[DisplayRecord]:
         """Simple regex search through record's lyrics for 'grammar'."""
+
         self.tick_progress()
-        if re.search(grammar, record.lyrics):
+        if re.search(query.grammar, record.lyrics):
             return DisplayRecord(record.artist, record.song)
 
 
@@ -301,19 +302,33 @@ class Search(tk.Frame):
         self.clear_lyrics()
         self.clear_results()
         self.clear_search()
-        self.toggle_fuzzy_search()
+
+        results = set()
+        
+        for index, record in enumerate(self.db.all_records()):
+            result = self.simple_re(record, query)
+            if result:
+                results.add(record)
+            print("Progress:", index, end="\r")
+        print()
+
+        #TODO, finish the showing part...
+        print(len(results))
+
+#         self.toggle_fuzzy_search()
         
         #TODO, combine with grammar thread manager
 
-        try:
+#         try:
             # create main thread to manage the other threads
-            manager_thread = threading.Thread(target=self.grammar_search_thread_manager, args=(query,))
-            manager_thread.start()
+#             manager_thread = threading.Thread(target=self.grammar_search_thread_manager, args=(query,))
+
+#             manager_thread.start()
 #             results = manager_thread.join()
 #             print("RESULTS thread manager:", results)
-        except RuntimeError:
-            logging.debug(f"RuntimeError, exact_grammar(): pattern={pattern}")
-            print()
+#         except RuntimeError:
+#             logging.debug(f"RuntimeError, exact_grammar(): pattern={pattern}")
+#             print()
 
         #works, but blocks the main app.
 #         for record in self.db.all_records():
@@ -382,6 +397,7 @@ class Search(tk.Frame):
 
         elif not artist and not song and grammar:
             self.exact_grammar(query)
+            #TODO
             records = DisplayRecord("Searching...", "")
             lyrics = None
 
@@ -599,7 +615,7 @@ class Search(tk.Frame):
 
 
     @timing
-    def thread_manager(self, limit: int, regex: re.Pattern):
+    def old_thread_manager(self, limit: int, regex: re.Pattern):
         """Main search thread."""
 
         self.regex = regex
@@ -619,6 +635,30 @@ class Search(tk.Frame):
                 if result is not None:
                     results.add(result)
                     self.results.append(result)
+        result_count = len(self.results)
+        self.stop()
+#         self.update_progress_label(f"Search completed in {round(time_taken, 3)} minutes. {result_count} matches found.")
+        self.toggle_fuzzy_search()
+        records = [DisplayRecord(result[1], result[2]) for result in results]
+
+        #TODO, return results instead of calling show
+        self.show_results(records)
+
+
+    @timing
+    def simple_grammar_search(self, limit: int, regex: re.Pattern):
+        """Main search thread."""
+
+        self.regex = regex
+        self.cancel_flag = False
+        results = set()
+        #iterate over db records
+
+        for record in self.db.all_records():
+            result = self.regex_search(record)
+            results.add(result)
+        print("RESULTS:", results)
+        self.results.append(result)
         result_count = len(self.results)
         self.stop()
 #         self.update_progress_label(f"Search completed in {round(time_taken, 3)} minutes. {result_count} matches found.")
@@ -676,7 +716,8 @@ class Search(tk.Frame):
 
         try:
             # create main thread to manage the other threads
-            manager_thread = threading.Thread(target=self.thread_manager, args=(limit, regex))
+#             manager_thread = threading.Thread(target=self.thread_manager, args=(limit, regex))
+            manager_thread = threading.Thread(target=self.simple_grammar_search, args=(limit, regex))
             manager_thread.start()
         except RuntimeError:
             logging.debug(f"RuntimeError, {word_search.__name__}(): pattern={pattern}")
