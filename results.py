@@ -17,6 +17,7 @@ from typing import Text, List
 
 
 DisplayRecord = namedtuple("DisplayRecord", ["artist", "song"])
+DBRecord = namedtuple("DBRecord", ["id", "artist", "song", "lyrics"])
 logging.basicConfig(filename='Logs/errors.log', encoding='utf-8', level=logging.DEBUG)
 
 
@@ -153,7 +154,7 @@ class Results(tk.Frame):
                 writer.writerows(data)
 
 
-    def show_lyrics(self, data: Text) -> None:
+    def show_lyrics(self, data: DBRecord) -> None:
         """Load the lyrics results into the text box."""
 
         self.clear_lyrics_text()
@@ -189,6 +190,7 @@ class Results(tk.Frame):
                 #TODO: load results async
                 for index, record in enumerate(sorted(records, reverse=True)):
                     song, artist = record.artist, record.song
+#                     self.list_.insert(0, f"'{record.song}' by {record.artist}")
                     self.list_.insert(0, f"'{record.song}' by {record.artist}")
 
             elif self.ask_to_save():
@@ -199,7 +201,7 @@ class Results(tk.Frame):
             for index, record in enumerate(sorted(records, reverse=True)):
                 self.list_.insert(0, f"'{record.song}' by {record.artist}")
 
-    def update_lyrics_box(self, data: Text) -> None:
+    def update_lyrics_box(self, data: DBRecord) -> None:
         """Update the lyrics box with 'data'."""
 
-        self.lyrics.insert("1.0", data)
+        self.lyrics.insert("1.0", data.lyrics)

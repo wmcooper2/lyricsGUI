@@ -5,7 +5,6 @@ import tkinter as tk
 import pytest
 
 #custom
-import db_util as db
 from lyricstab import LyricsTab
 
 class Data:
