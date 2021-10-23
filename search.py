@@ -228,6 +228,7 @@ class Search(tk.Frame):
         record = self.db.artist_and_song(query.artist, query.song)
         if record:
             records = DisplayRecord(record.artist, record.song)
+            lyrics = record.lyrics
         else:
             records = DisplayRecord("", "")
         return records, lyrics
@@ -312,32 +313,6 @@ class Search(tk.Frame):
             print("Progress:", index, end="\r")
         print()
 
-        #TODO, finish the showing part...
-        print(len(results))
-
-#         self.toggle_fuzzy_search()
-        
-        #TODO, combine with grammar thread manager
-
-#         try:
-            # create main thread to manage the other threads
-#             manager_thread = threading.Thread(target=self.grammar_search_thread_manager, args=(query,))
-
-#             manager_thread.start()
-#             results = manager_thread.join()
-#             print("RESULTS thread manager:", results)
-#         except RuntimeError:
-#             logging.debug(f"RuntimeError, exact_grammar(): pattern={pattern}")
-#             print()
-
-        #works, but blocks the main app.
-#         for record in self.db.all_records():
-#             if re.search(query.grammar, record.lyrics):
-#                 records.append(DisplayRecord(record.artist, record.song))
-#         if not records:
-#             records = [DisplayRecord("", "")]
-#         return records, lyrics
-
 
     def exact_song(self, query: Query) -> Tuple[List[DisplayRecord], Optional[Text]]:
         """Search for all songs that share the same name."""
@@ -366,10 +341,8 @@ class Search(tk.Frame):
             records = DisplayRecord(records.artist, records.song)
         else:
             records = [DisplayRecord(record.artist, record.song) for record in records]
+        print(records[0])
         return records, lyrics
-
-
-
 
 
     def exact_search(self, query: Query) -> Tuple[List[DisplayRecord], Optional[Text]]:
@@ -598,7 +571,6 @@ class Search(tk.Frame):
             self.fuzzy_search(Query(artist, song, grammar))
         else:
             records, lyrics = self.exact_search(Query(artist, song, grammar))
-
         self.show_results(records, lyrics=lyrics)
 
 
@@ -657,7 +629,6 @@ class Search(tk.Frame):
         for record in self.db.all_records():
             result = self.regex_search(record)
             results.add(result)
-        print("RESULTS:", results)
         self.results.append(result)
         result_count = len(self.results)
         self.stop()

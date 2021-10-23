@@ -10,10 +10,10 @@ from tkinter import ttk
 from tkinter import filedialog
 from tkinter import messagebox
 from tkinter.scrolledtext import ScrolledText
-from typing import Text, List
+from typing import List, Text, Union
 
 #custom
-# import db_util
+import database
 
 
 DisplayRecord = namedtuple("DisplayRecord", ["artist", "song"])
@@ -135,12 +135,12 @@ class Results(tk.Frame):
                 writer.writerows(data)
 
 
-    def show_lyrics(self, data: DBRecord) -> None:
+    def show_lyrics(self, lyrics: Text) -> None:
         """Load the lyrics results into the text box."""
 
         self.clear_lyrics_text()
-        if data:
-            self.update_lyrics_box(data)
+        if lyrics:
+            self.update_lyrics_box(lyrics)
         else:
             self.update_lyrics_box("No matching results.")
 
@@ -164,7 +164,7 @@ class Results(tk.Frame):
                 self.list_.insert(0, f"'{records[0].song}' by {records[0].artist}")
                 self.show_lyrics(lyrics)
 
-        elif len(records) > 100:
+        elif len(records) > 500:
             view_now = messagebox.askyesno(title="Show Results?", message=f"There are {len(records)} results. Viewing all of them at once may slow down your computer. Do you want to view all of them now?")
 
             if view_now:
@@ -182,7 +182,14 @@ class Results(tk.Frame):
             for index, record in enumerate(sorted(records, reverse=True)):
                 self.list_.insert(0, f"'{record.song}' by {record.artist}")
 
-    def update_lyrics_box(self, data: DBRecord) -> None:
+    def update_lyrics_box(self, data: Union[Text, database.DBRecord]) -> None:
         """Update the lyrics box with 'data'."""
 
-        self.lyrics.insert("1.0", data.lyrics)
+        try: 
+            data = data.lyrics
+            
+        except Exception as e:
+            #TODO, log
+            print(e)
+
+        self.lyrics.insert("1.0", data)

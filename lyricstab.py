@@ -47,9 +47,13 @@ class LyricsTab(tk.Frame):
 
     def handle_results_click(self, option: Text, list_: List[Text]) -> None:
         index = list_.curselection()
-        record = self.results.search_results[index[0]]
-        lyrics = self.search.db.artist_and_song(record.artist, record.song)
-        self.show_lyrics(lyrics)
+        try:
+            record = self.results.search_results[index[0]]
+            lyrics = self.search.db.artist_and_song(record.artist, record.song)
+            self.show_lyrics(lyrics)
+        except IndexError:
+            print("Song not selected")
+
 
     def save_results(self, data: List) -> None:
         self.results.save_results(data)
@@ -58,10 +62,21 @@ class LyricsTab(tk.Frame):
         self.results.show_lyrics(data)
     
     def show_results(self, records: List[DisplayRecord], lyrics=None) -> None:
+
         Results.search_results = records
+        list_ = self.results.search_results
+
         #sort results, then show
-        self.results.search_results.sort(key=lambda x: x[1])
-        self.results.show_results(records, lyrics=lyrics)
+        try:
+            list_.sort(key=lambda x: x[1])
+        except AttributeError:
+            print("Only one record. No need to sort.")
+
+        if len(list_) == 1:
+            lyrics = list_[0].lyrics
+            self.results.show_results(records, lyrics=lyrics)
+        else:
+            self.results.show_results(records, lyrics=lyrics)
 
     def stop_search(self) -> None:
         self.search.stop()
