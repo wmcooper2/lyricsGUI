@@ -99,25 +99,6 @@ class Results(tk.Frame):
         """Load the selected song's lyrics into the lyrics box."""
         self.master.handle_results_click(option, self.list_)
 
-#        selection = None
-#        index = self.list_.curselection()
-#
-#        try:
-#            selection = option.widget.get(index)
-#        except tk.TclError:
-#            logging.debug(f"TypeError: handle_results_click(), {selection}")
-#        song_match = None
-#
-#        if selection:
-#            try:
-#                song_match = re.match('\".*?\"', selection)
-#            except TypeError:
-#                logging.debug(f"TypeError: handle_results_click(), couldn't extract song_name from quotes, {selection}")
-#                song_match = None
-#        song = None
-#        artist = None
-#
-#        if song_match:
 #            song = song_match.group(0)
 #            song = selection[1:song_match.end()-1]
 #            # drop string through quotes

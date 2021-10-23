@@ -59,6 +59,8 @@ class LyricsTab(tk.Frame):
     
     def show_results(self, records: List[DisplayRecord], lyrics=None) -> None:
         Results.search_results = records
+        #sort results, then show
+        self.results.search_results.sort(key=lambda x: x[1])
         self.results.show_results(records, lyrics=lyrics)
 
     def stop_search(self) -> None:
