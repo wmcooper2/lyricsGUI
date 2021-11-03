@@ -70,9 +70,11 @@ class LyricsTab(tk.Frame):
         try:
             list_.sort(key=lambda x: x[1])
         except AttributeError:
-            print("Only one record. No need to sort.")
+            print("Unable to sort 'list_'")
 
-        if len(list_) == 1:
+        if list_ is None:
+            self.results.show_results()
+        elif len(list_) == 1:
             lyrics = list_[0].lyrics
             self.results.show_results(records, lyrics=lyrics)
         else:

@@ -145,15 +145,19 @@ class Results(tk.Frame):
             self.update_lyrics_box("No matching results.")
 
 
-    def show_results(self, records: List[DisplayRecord], lyrics=None) -> None:
+    def show_results(self, records: List[DisplayRecord]=None, lyrics=None) -> None:
         """Load the song and artist results into the list box."""
 
         self.clear_results_list()
         self.clear_lyrics_text()
 
+#         print("SAME?", Results.search_results == records)
+
         # wrap in list if a single record was given
         if isinstance(records, tuple):
             records = [records]
+
+#         breakpoint()
 
         if records is None:
             self.list_.insert(0, "No matches found")

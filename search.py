@@ -126,10 +126,6 @@ class Search(tk.Frame):
         self.progress_bar.grid(row=2, column=0, columnspan=9)
         self.artist.focus()
 
-#     def __post_init(self) -> None:
-#         self.song_count = self.db.record_count()
-#         self.artist_count = self.db.artists()
-
 
     def ask_to_save(self, string: Text = None) -> bool:
         """Ask the user if they want to save the results."""
@@ -262,30 +258,6 @@ class Search(tk.Frame):
         return records, lyrics
 
 
-    @timing
-#     def grammar_search_thread_manager(self, query: Query) -> Tuple[List[DBRecord], Optional[Text]]:
-    def grammar_search_thread_manager(self, query: Query) -> None:
-        """Threaded search for grammar patterns."""
-
-        records = set()
-        self.cancel_flag = False
-        with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
-            futures = {executor.submit(self.simple_re, record, query.grammar) for record in self.db.all_records()}
-            for future in concurrent.futures.as_completed(futures):
-                record = None
-                try:
-                    record = future.result()
-                except TypeError as e:
-                    logging.debug("TypeError: Threading...")
-                if record is not None:
-                    records.add(record)
-
-        records = list(records)
-        records.sort()
-        self.toggle_fuzzy_search()
-        self.show_results(records)
-
-
     def simple_re(self, record: DBRecord, query: Query) -> Optional[DisplayRecord]:
         """Simple regex search through record's lyrics for 'grammar'."""
 
@@ -294,8 +266,6 @@ class Search(tk.Frame):
             return DisplayRecord(record.artist, record.song)
 
 
-#     def exact_grammar(self, query: Query) -> Tuple[List[DisplayRecord], Optional[Text]]:
-    #works, but this thread manager version runs really slow...
     def exact_grammar(self, query: Query) -> None:
         """Find exact grammar in any song by any artist."""
 
@@ -303,15 +273,26 @@ class Search(tk.Frame):
         self.clear_lyrics()
         self.clear_results()
         self.clear_search()
+        self.toggle_fuzzy_search()
+        pattern = re.compile(query.grammar)
+        self.cancel_flag = False
 
         results = set()
-        
-        for index, record in enumerate(self.db.all_records()):
-            result = self.simple_re(record, query)
-            if result:
-                results.add(record)
+        limit = self.song_count
+        records = self.db.all_records()
+
+        for index, record in enumerate(records):
+            match = pattern.search(record.lyrics)
+            if match:
+                results.add(DisplayRecord(record.artist, record.song))
             print("Progress:", index, end="\r")
+
+        #TODO, log search params and results
         print()
+        print("results:", len(results))
+        results = list(results)
+#         results.sort(reverse=True)
+        return results
 
 
     def exact_song(self, query: Query) -> Tuple[List[DisplayRecord], Optional[Text]]:
@@ -341,7 +322,6 @@ class Search(tk.Frame):
             records = DisplayRecord(records.artist, records.song)
         else:
             records = [DisplayRecord(record.artist, record.song) for record in records]
-        print(records[0])
         return records, lyrics
 
 
@@ -369,10 +349,8 @@ class Search(tk.Frame):
             records, lyrics = self.exact_song_grammar(query)
 
         elif not artist and not song and grammar:
-            self.exact_grammar(query)
-            #TODO
-            records = DisplayRecord("Searching...", "")
-            lyrics = None
+            records = self.exact_grammar(query)
+#             records = DisplayRecord("Searching...", "")
 
         elif not artist and song and not grammar:
             records, lyrics = self.exact_song(query)
@@ -425,7 +403,7 @@ class Search(tk.Frame):
         #ARTIST
         elif artist and not song and not grammar:
             songs = self.db.fuzzy_songs_from_artist(artist)
-            records = [DisplayRecord(records[0], records[1]) for records in records]
+#             records = [DisplayRecord(records[0], records[1]) for records in records]
 
         #NONE     NONE    NONE
         else:
@@ -479,7 +457,7 @@ class Search(tk.Frame):
             manager_thread = threading.Thread(target=self.fuzzy_manager, args=(pattern, limit, gap))
             manager_thread.start()
         except RuntimeError:
-            logging.debug(f"RuntimeError, {word_search.__name__}(): pattern={pattern}")
+            logging.debug(f"RuntimeError, {fuzzy_word_search.__name__}(): pattern={pattern}")
         #TODO, return results
 
     def gap_search(self, words: Text="", gap: int=0) -> List:
@@ -617,30 +595,6 @@ class Search(tk.Frame):
         self.show_results(records)
 
 
-    @timing
-    def simple_grammar_search(self, limit: int, regex: re.Pattern):
-        """Main search thread."""
-
-        self.regex = regex
-        self.cancel_flag = False
-        results = set()
-        #iterate over db records
-
-        for record in self.db.all_records():
-            result = self.regex_search(record)
-            results.add(result)
-        self.results.append(result)
-        result_count = len(self.results)
-        self.stop()
-#         self.update_progress_label(f"Search completed in {round(time_taken, 3)} minutes. {result_count} matches found.")
-        self.toggle_fuzzy_search()
-        records = [DisplayRecord(result[1], result[2]) for result in results]
-
-        #TODO, return results instead of calling show
-        self.show_results(records)
-
-
-
     def tick_progress(self) -> None:
         self.progress_bar.step(1)
 
@@ -669,30 +623,3 @@ class Search(tk.Frame):
 
         self.slider_var = value
         self.slider_label["text"] = f"Word gap: {int(float(value))}"
-
-
-    #TODO, move inside exact_grammar()?
-    def word_search(self, pattern: Text, limit: int):
-        """Search for 'pattern' in all lyrics."""
-
-        #set up the gui for threaded search
-        self.update_progress_label(f"Searching for: '{pattern}'...")
-        self.clear_lyrics()
-        self.clear_results()
-        self.clear_search()
-        self.toggle_fuzzy_search()
-        regex = re.compile(pattern)
-        self.results = []
-        self.cancel_flag = False
-
-        try:
-            # create main thread to manage the other threads
-#             manager_thread = threading.Thread(target=self.thread_manager, args=(limit, regex))
-            manager_thread = threading.Thread(target=self.simple_grammar_search, args=(limit, regex))
-            manager_thread.start()
-        except RuntimeError:
-            logging.debug(f"RuntimeError, {word_search.__name__}(): pattern={pattern}")
-            #TODO, figure out the use of "from None" in exception handling to return just the most recent exception traceback
-#         except Exception as e from None
-
-
