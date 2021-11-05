@@ -13,8 +13,7 @@ from tkinter import ttk
 from typing import Any, List, Optional, Text, Tuple
 
 # custom
-# import db_util
-from database import Database
+from database import Database, FuzzyDatabase
 from results import Results
 
 
@@ -25,6 +24,7 @@ DBRecord = namedtuple("DBRecord", ["id", "artist", "song", "lyrics"])
 logging.basicConfig(filename='Logs/errors.log', encoding='utf-8', level=logging.DEBUG)
 
 DATABASE = Database()
+FUZZY_DATABASE = Database()
 
 def timing(function):
     """Timing decorator."""
@@ -49,6 +49,7 @@ class Search(tk.Frame):
         self.search_in_progress = False
         self.index = 0
         self.db = DATABASE
+        self.fuzzy_db = FUZZY_DATABASE
         self.song_count = self.db.record_count()
         self.artist_count = self.db.artists()
 
@@ -376,20 +377,20 @@ class Search(tk.Frame):
 
         #ARTIST     SONG    GRAMMAR
         if artist and song and grammar:
-            lyrics = db_uitl.fuzzy_artist_and_song(artist, song)
+            lyrics = self.fuzzy_db.fuzzy_artist_and_song(artist, song)
 
         #ARTIST     SONG
         elif artist and song and not grammar:
-            lyrics = db_uitl.fuzzy_artist_and_song(artist, song)
+            lyrics = self.fuzzy_db.fuzzy_artist_and_song(artist, song)
 
         #ARTIST             GRAMMAR
         elif artist and not song and grammar:
             #doesn't make sense
-            artists = self.db.fuzzy_song(song)
+            artists = self.fuzzy_db.fuzzy_song(song)
 
         #           SONG    GRAMMAR
         elif not artist and song and grammar:
-            artists = self.db.fuzzy_song(song)
+            artists = self.fuzzy_db.fuzzy_song(song)
 
         #                   GRAMMAR
         elif not artist and not song and grammar:
@@ -398,11 +399,11 @@ class Search(tk.Frame):
 
         #           SONG
         elif not artist and song and not grammar:
-            artists = self.db.fuzzy_song("Databases/lyrics.db", "songs", song)
+            artists = self.fuzzy_db.fuzzy_song("Databases/lyrics.db", "songs", song)
 
         #ARTIST
         elif artist and not song and not grammar:
-            songs = self.db.fuzzy_songs_from_artist(artist)
+            songs = self.fuzzy_db.fuzzy_songs_from_artist(artist)
 #             records = [DisplayRecord(records[0], records[1]) for records in records]
 
         #NONE     NONE    NONE

@@ -37,7 +37,7 @@ class TestExactObjectCreation:
     def test_create_search_object(self, Search):
         assert Search
 
-    def test_create_query(self, Search, all_three):
+    def test_create_query(self, all_three):
         q = all_three
         assert q
         assert q.artist == "The Police"
@@ -45,7 +45,7 @@ class TestExactObjectCreation:
         assert q.grammar == "red light"
 
     @pytest.mark.xfail
-    def test_create_query_defaults_fails(self, Search, Query):
+    def test_create_query_defaults_fails(self, Query):
         q = Query()
         assert q
 
@@ -126,7 +126,7 @@ class TestExactArtistSong:
         assert isinstance(result, tuple)
         assert result.artist == ""
         assert result.song == ""
-        assert lyrics == None
+        assert lyrics == ""
 
     def test_search_artist_song_returns_empty_record_on_bad_song(self, Search, Query, bad_entry):
         q = Query("The Police", bad_entry, "red light")
@@ -135,7 +135,7 @@ class TestExactArtistSong:
         assert isinstance(result, tuple)
         assert result.artist == ""
         assert result.song == ""
-        assert lyrics == None
+        assert lyrics == ""
 
 
 class TestExactArtistGrammar:

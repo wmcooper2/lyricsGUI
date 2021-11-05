@@ -6,7 +6,7 @@ import tkinter as tk
 import pytest
 
 #custom
-from database import Database
+from database import Database, FuzzyDatabase
 
 
 #TODO: Class scoped DB connection
@@ -26,17 +26,20 @@ class TestLyricsDB:
 
     @pytest.fixture(scope="module")
     def database(self):
-        db = Database()
-        return db
+        return Database()
+
+    @pytest.fixture(scope="module")
+    def fuzzy_database(self):
+        return FuzzyDatabase()
 
 #     @pytest.fixture(scope="module")
 #     def cursor(database):
 #         return database.connection.cursor()
 
     def test_db_connection(self, database):
-        cur = database.connection.cursor()
+        con, cur = database.con_cur()
         assert isinstance(cur, sqlite3.Cursor)
-#         assert isinstance(con, sqlite3.Connection)
+        assert isinstance(con, sqlite3.Connection)
 #         db.close_connection(cur, con)
 
 #     def test_connect_to_database_with_name(self):
@@ -46,7 +49,7 @@ class TestLyricsDB:
 # #         db.close_connection(cur, con)
 
     def test_record_exists_in_db(self, database):
-        cur = database.connection.cursor()
+        con, cur = database.con_cur()
         assert database.record_check("The Police", "Roxanne", cur) is True
 
     def test_record_count_in_demo_db_unchanged(self, database):
@@ -76,17 +79,17 @@ class TestLyricsDB:
         result = database.songs_from_artist("The Police")
         assert len(result) == 134
 
-    def test_get_songs_from_fuzzy_artist_query(self, database):
-        result = database.fuzzy_songs_from_artist("the police")
-        assert len(result) == 134
+    def test_get_songs_from_fuzzy_artist_query(self, fuzzy_database):
+        result = fuzzy_database.fuzzy_songs_from_artist("the police")
+        assert len(result) == 352
 
-    def test_get_lyrics_from_fuzzy_artist_and_song_query(self, database):
-        result = database.fuzzy_artist_and_song("the police", "roxanne")
+    def test_get_lyrics_from_fuzzy_artist_and_song_query(self, fuzzy_database):
+        result = fuzzy_database.fuzzy_artist_and_song("the police", "roxanne")
         assert result.artist == "The Police"
         assert result.song == "Roxanne"
 
-    def test_get_all_records_which_share_the_same_song_name_fuzzy_song_query(self, database):
-        result = database.fuzzy_song("roxanne")
+    def test_get_all_records_which_share_the_same_song_name_fuzzy_song_query(self, fuzzy_database):
+        result = fuzzy_database.fuzzy_song("roxanne")
         assert len(result) == 5
 
 #     def test_get_artists_who_share_the_same_songs_name(self):
