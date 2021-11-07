@@ -54,31 +54,21 @@ class LyricsTab(tk.Frame):
         except IndexError:
             print("Song not selected")
 
-
     def save_results(self, data: List) -> None:
         self.results.save_results(data)
 
     def show_lyrics(self, data: List) -> None:
         self.results.show_lyrics(data)
     
-    def show_results(self, records: List[DisplayRecord], lyrics=None) -> None:
-
-        Results.search_results = records
-        list_ = self.results.search_results
-
-        #sort results, then show
+    def show_results(self, records: List[DisplayRecord]=None, lyrics=None) -> None:
         try:
-            list_.sort(key=lambda x: x[1])
+            records.sort(key=lambda x: x[1])
         except AttributeError:
-            print("Unable to sort 'list_'")
+            print(f"LyricsTab.show_results(): Unable to sort records. \
+                    {type(records)} has no sort method.")
 
-        if list_ is None:
-            self.results.show_results()
-        elif len(list_) == 1:
-            lyrics = list_[0].lyrics
-            self.results.show_results(records, lyrics=lyrics)
-        else:
-            self.results.show_results(records, lyrics=lyrics)
+        Results.search_results = records  # assign to shared records
+        self.results.show_results(records, lyrics=lyrics)
 
     def stop_search(self) -> None:
         self.search.stop()

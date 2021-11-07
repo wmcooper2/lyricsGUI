@@ -270,3 +270,7 @@ class TestExactArtist:
         assert lyrics == None
 
 
+class TestFuzzyArtistSongGrammar:
+    pass
+
+        

@@ -1,4 +1,5 @@
 #std lib
+from collections import namedtuple
 import sqlite3
 import tkinter as tk
 
@@ -6,10 +7,33 @@ import tkinter as tk
 import pytest
 
 #custom
-from database import Database, FuzzyDatabase
+from database import Database, FuzzyDatabase, DBRecord
 
 
 #TODO: Class scoped DB connection
+
+@pytest.fixture(scope="module")
+def database():
+    return Database()
+
+@pytest.fixture(scope="module")
+def fuzzy_database():
+    return FuzzyDatabase()
+
+@pytest.fixture(scope="module")
+def Query():
+    Query = namedtuple("Query", ["artist", "song", "grammar"])
+    return Query
+
+@pytest.fixture(scope="module")
+def all_three(Query):
+    return Query("The Police", "Roxanne", "red light")
+
+@pytest.fixture(scope="module")
+def bad_entry():
+    return "lkjei"
+
+
 
 
 class TestLyricsDB:
@@ -23,14 +47,6 @@ class TestLyricsDB:
 #     @pytest.fixture
 #     def db_connection(self, database):
 #         return db.
-
-    @pytest.fixture(scope="module")
-    def database(self):
-        return Database()
-
-    @pytest.fixture(scope="module")
-    def fuzzy_database(self):
-        return FuzzyDatabase()
 
 #     @pytest.fixture(scope="module")
 #     def cursor(database):
@@ -107,3 +123,29 @@ class TestLyricsDB:
         generator = database.all_records()
         assert hasattr(generator, "__next__")
         assert hasattr(generator, "__iter__")
+
+@pytest.mark.fuzzy
+class TestFuzzyDB:
+    
+    def test_db_connection(self, fuzzy_database):
+        con, cur = fuzzy_database.con_cur()
+        assert isinstance(cur, sqlite3.Cursor)
+        assert isinstance(con, sqlite3.Connection)
+
+    def test_fuzzy_song_returns_list_of_DBRecords(self, fuzzy_database):
+        results = fuzzy_database.fuzzy_song("roxann")
+        assert isinstance(results, list)
+        assert isinstance(results[0], DBRecord)
+
+    def test_fuzzy_song_returns_valid_DBRecords(self, fuzzy_database):
+        results = fuzzy_database.fuzzy_song("roxanne")
+        assert len(results) == 5
+        assert set(["Roxanne"]) == set([result.song for result in results])
+
+    def test_fuzzy_song_returns_empty_DBRecord_on_bad_song(self, bad_entry, fuzzy_database):
+        results = fuzzy_database.fuzzy_song(bad_entry*2)
+        assert len(results) == 1
+        assert results[0].artist == ""
+        assert results[0].song == ""
+        assert results[0].lyrics == ""
+

@@ -151,13 +151,9 @@ class Results(tk.Frame):
         self.clear_results_list()
         self.clear_lyrics_text()
 
-#         print("SAME?", Results.search_results == records)
-
         # wrap in list if a single record was given
         if isinstance(records, tuple):
             records = [records]
-
-#         breakpoint()
 
         if records is None:
             self.list_.insert(0, "No matches found")

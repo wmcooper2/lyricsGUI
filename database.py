@@ -15,6 +15,11 @@ DBRecord = namedtuple("DBRecord", ["id", "artist", "song", "lyrics"])
 
 # csv.field_size_limit(sys.maxsize)  # Increase field size limit
 
+def list_print(list_: List[Any]):
+    for element in list_: 
+        print(element)
+        print()
+
 #subclass sqlite?
 class Database():
 
@@ -163,43 +168,29 @@ class FuzzyDatabase(Database):
     def fuzzy_songs_from_artist(self, artist: Text) -> List[DBRecord]:
         """Fuzzy search of songs from 'artist'."""
 
-        #TODO: use edit distance and return sorted list based on that value
-
-        sql_statement = "SELECT artist FROM songs"
-        self.cur.execute(sql_statement)
+        self.cur.execute("SELECT artist FROM songs")
         db_records = self.cur.fetchall()
 
+        #TODO: refactor into function composition?
         artists = [r[0] for r in db_records]
+        artists = difflib.get_close_matches(artist, artists, n=5)
         artists = set(artists) #clear out duplicates
-        artists = list(artists)#convert back to list 
+        possible_matches = list(artists)#convert back to list 
 
+        results = list()
         records = set()
-        possible_matches = difflib.get_close_matches(artist, artists)
         if possible_matches:
-#             return [DBRecord(result[0], result[1], result[2], result[3]) for result in results]
-#             artists = set(results) #clear out duplicates
-#             artists = list(artists)#convert back to list 
-            
-            #perform query for all artists in the list
-
-            #message box asking for user to choose an artist
-#             input()
-
             records = set(records)
-            print("RECORDS:", records)
-
             for artist in possible_matches:
                 results = self.songs_from_artist(artist)
                 for result in results:
                     records.add(result.artist)
-
         return results
 
 
     def fuzzy_artist_and_song(self, artist: Text, song: Text) -> DBRecord:
         """Fuzzy search for a 'song' by an 'artist'."""
 
-        #TODO: use edit distance and return sorted list based on that value
         self.cur.execute("SELECT * FROM songs WHERE LOWER(?)=? AND LOWER(?)=?", (artist, artist.lower(), song, song.lower()))
         result = self.cur.fetchall()
         result = result[0]
@@ -208,14 +199,29 @@ class FuzzyDatabase(Database):
         else:
             return DBRecord("", "", "", "")
 
-
+    #done
     def fuzzy_song(self, song: Text) -> List[DBRecord]:
         """Fuzzy search for 'song'. Returns list of artists and the song."""
 
-        self.cur.execute("SELECT * FROM songs WHERE LOWER(?)=?", (song, song.lower()))
-        results = self.cur.fetchall()
-        if results:
-            return [DBRecord(result[0], result[1], result[2], result[3]) for result in results]
+        self.cur.execute("SELECT song FROM songs")
+        records = self.cur.fetchall()
+        records = [record[0] for record in records]
+
+        # get closest match from all of them
+        possible_matches = difflib.get_close_matches(song, records)
+        possible_matches = set(possible_matches)
+        possible_matches = list(possible_matches)
+
+        # perform db search using the top closest matches
+        results = list()
+        for match in possible_matches:
+            results.append(self.artists_having_song(match))
+
+        #flatten the list
+        final = [nested for result in results for nested in result]
+
+        if final:
+            return [DBRecord(record[0], record[1], record[2], record[3]) for record in final]
         else:
             return [DBRecord("", "", "", "")]
 
@@ -277,4 +283,6 @@ if __name__ == "__main__":
     base_name = "db_health"
     logging.basicConfig(filename=f"Logs/{base_name}.errors", encoding="utf-8", level=logging.DEBUG)
 
-    a = Database()
+    db = FuzzyDatabase()
+#     db.fuzzy_song("call in he familt")
+    list_print(db.fuzzy_song("roxann"))
