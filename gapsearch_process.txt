@@ -1,0 +1,98 @@
+    def fuzzy_grammar(self, query: Query, gap: int) -> None:
+        """Find fuzzy grammar in any song by any artist."""
+        self.fuzzy_word_search(query.grammar, self.song_count, gap)
+
+
+
+    def fuzzy_word_search(self, pattern: Text, limit: int, gap: int):
+        """Search for 'pattern' with max 'gap' between any pairs of neighboring words in 'pattern' through all lyrics."""
+
+        #set up the gui for threaded search
+        self.update_progress_label(f"Searching for: '{pattern}'...")
+        self.clear_lyrics()
+        self.clear_results()
+        self.toggle_fuzzy_search()
+        self.results = []
+        self.cancel_flag = False
+        self.index = 0
+
+        try:
+            manager_thread = threading.Thread(target=self.fuzzy_manager, args=(pattern, limit, gap))
+            manager_thread.start()
+        except RuntimeError:
+            logging.debug(f"RuntimeError, {fuzzy_word_search.__name__}(): pattern={pattern}")
+
+
+
+    def fuzzy_manager(self, pattern: str, limit: int, gap: int) -> None:
+            """Main fuzzy-search thread."""
+
+            start_time = time.time()
+            while self.index < limit and not self.cancel_flag:
+                thread = threading.Thread(target=self.gap_search, args=(pattern, gap))
+                thread.start()
+
+                while thread.is_alive():        # wait for the thread to finish
+                    continue
+                thread.join()                   # end the thread, (timeout=5) ? 
+                self.index += self.step
+                if self.progress.get() >= self.song_count:
+                    break
+                self.tick_progress()
+
+            end_time = time.time()
+            time_taken = (end_time - start_time) / 60
+            result_count = len(self.results)
+            self.stop()
+            self.update_progress_label(f"Search completed in {round(time_taken, 3)} minutes. {result_count} matches found.")
+            self.toggle_fuzzy_search()
+
+
+
+    def gap_search(self, words: Text="", gap: int=0) -> List:
+        """Searches for all 'words' with max 'gap' between any neighboring pair of words."""
+
+        def _gap_search_result(result: str) -> bool:
+            """Convert the result into a boolean."""
+            if result.endswith("True"):
+                final_seq = result.rstrip("True")
+                return True
+            else:
+                return False
+        #start here
+        if words:
+            gap = int(gap)
+            for i, artist, song, lyrics in self.db.index_search(self.index, self.step):
+                if lyrics is not None and words is not None:
+                    lyrics = lyrics.split(" ")
+                    words = words.split(" ")
+                    #TODO: remove punct from words and lyrics? 
+                    answer = self.distant_neighboring_words(lyrics, words, gap)
+                    return _gap_search_result(answer)
+        return []
+
+
+
+    def distant_neighboring_words(self, lyrics: List, words: List, gap: int) -> Any:
+        """This algorithm is the heart of the gap_search() function."""
+
+        if words:
+            try:
+                index = lyrics.index(words[0])
+            except:
+                index = None
+            try:
+                if index is not None:
+                    if index > len(lyrics) - len(words) or index > gap:
+                        return str(False)
+                    return str(index) + str(self.distant_neighboring_words(lyrics[index+1:], words[1:], gap))
+                else:
+                    return str(False)
+            except ValueError:  # word not found in lyrics 
+                logging.debug(f"ValueError: {words}")
+                return str(False)
+        else:
+            return str(True)
+
+
+

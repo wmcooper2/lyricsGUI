@@ -201,6 +201,7 @@ class Search(tk.Frame):
         self.slider.state(["!disabled"])
 
 
+    #TODO: if any match, find all matches and highlight
     def exact_all_three(self, query: Query) -> Tuple[DisplayRecord, Optional[Text]]:
         """Perform an exact search for all the query's paramaters."""
 
@@ -213,7 +214,6 @@ class Search(tk.Frame):
         else:
             records = DisplayRecord("", "")
         return records, lyrics
-        #TODO: if any match, find all matches and highlight
 
 
     def exact_artist_song(self, query: Query) -> Tuple[DisplayRecord, Optional[Text]]:
@@ -265,6 +265,7 @@ class Search(tk.Frame):
             return DisplayRecord(record.artist, record.song)
 
 
+    #TODO, log search params and results
     def exact_grammar(self, query: Query) -> None:
         """Find exact grammar in any song by any artist."""
 
@@ -286,11 +287,9 @@ class Search(tk.Frame):
                 results.add(DisplayRecord(record.artist, record.song))
             print("Progress:", index, end="\r")
 
-        #TODO, log search params and results
         print()
         print("results:", len(results))
         results = list(results)
-#         results.sort(reverse=True)
         return results
 
 
@@ -363,19 +362,16 @@ class Search(tk.Frame):
         return records, lyrics
 
 
+    #TODO, return DisplayRecord too
+    #TODO, search for grammar in the lyrics
+    #TODO, depends on fuzzy grammar
     def fuzzy_all_three(self, query: Query) -> Tuple[DisplayRecord, Optional[Text]]:
         """Perform a fuzzy search for all the query's paramaters."""
-        #TODO, return DisplayRecord too
-        #TODO, search for grammar in the lyrics
         return self.fuzzy_db.fuzzy_artist_and_song(artist, song)
 
-
     
-    #in progress
     def fuzzy_artist_song(self, query: Query) -> Tuple[DisplayRecord, Optional[Text]]:
         """Perform a fuzzy search for a song written by an artist."""
-        #TODO, return DisplayRecord too
-#         self.fuzzy_db.fuzzy_artist_and_song(artist, song)
 
         records = self.fuzzy_db.fuzzy_artist_and_song(query.artist, query.song)
         if len(records) == 1:
@@ -384,21 +380,21 @@ class Search(tk.Frame):
             return (records, None)
 
 
-
-
+    #TODO, depends on fuzzy grammar
     def fuzzy_artist_grammar(self, query: Query) -> Tuple[List[DisplayRecord], Optional[Text]]:
         """Find a fuzzy grammar in all of the artist's songs."""
         artists = self.fuzzy_db.fuzzy_song(song)
 
-
+    #TODO, depends on fuzzy grammar
     def fuzzy_song_grammar(self, query: Query) -> Tuple[List[DisplayRecord], Optional[Text]]:
         """Fuzzy search for grammar within any song sharing the same name."""
         artists = self.fuzzy_db.fuzzy_song_grammar(song)
 
 
-    def fuzzy_grammar(self, query: Query) -> None:
+    #TODO: isn't gap part of query?
+    def fuzzy_grammar(self, query: Query, gap: int) -> None:
         """Find fuzzy grammar in any song by any artist."""
-        self.fuzzy_word_search(grammar, self.song_count, gap)
+        self.fuzzy_word_search(query.grammar, self.song_count, gap)
 
 
     #done
@@ -445,6 +441,7 @@ class Search(tk.Frame):
         elif not artist and song and grammar:
             records, lyrics = self.fuzzy_song_grammar(query)
 
+        #TODO, relies only on self.fuzzy_grammar()
         elif not artist and not song and grammar:
             gap = self.slider.get()
             records, lyrics = self.funct(query)
@@ -467,10 +464,8 @@ class Search(tk.Frame):
     def fuzzy_manager(self, pattern: str, limit: int, gap: int) -> None:
             """Main fuzzy-search thread."""
 
-            #TODO: finish the threaded gap search
             start_time = time.time()
             while self.index < limit and not self.cancel_flag:
-                #TODO: pass list of words...
                 thread = threading.Thread(target=self.gap_search, args=(pattern, gap))
                 thread.start()
 
@@ -488,7 +483,6 @@ class Search(tk.Frame):
             self.stop()
             self.update_progress_label(f"Search completed in {round(time_taken, 3)} minutes. {result_count} matches found.")
             self.toggle_fuzzy_search()
-            #TODO, return results
 
 
     def fuzzy_word_search(self, pattern: Text, limit: int, gap: int):
@@ -510,7 +504,7 @@ class Search(tk.Frame):
             manager_thread.start()
         except RuntimeError:
             logging.debug(f"RuntimeError, {fuzzy_word_search.__name__}(): pattern={pattern}")
-        #TODO, return results
+
 
     def gap_search(self, words: Text="", gap: int=0) -> List:
         """Searches for all 'words' with max 'gap' between any neighboring pair of words."""
@@ -519,7 +513,6 @@ class Search(tk.Frame):
 
         def _gap_search_result(result: str) -> bool:
             """Convert the result into a boolean."""
-            #TODO: 
             if result.endswith("True"):
                 final_seq = result.rstrip("True")
                 return True
@@ -556,7 +549,6 @@ class Search(tk.Frame):
         return messagebox.askyesno(title="Word or Phrase Search", message=message)
 
 
-    #TODO, rethink FileMatch type
     def regex_search(self, data: Tuple[Text]) -> Optional[FileMatch]:
         """Perform a regex search for 'pattern'."""
 
@@ -570,7 +562,6 @@ class Search(tk.Frame):
 
         self.tick_progress()
 #         print(data[0], end="\r")
-        #TODO, add return statement
 
 
     def save_results(self, results: List[DisplayRecord]) -> None:
@@ -605,10 +596,12 @@ class Search(tk.Frame):
 
 
     def show_results(self, records: List[DisplayRecord], lyrics=None) -> None:
+        """Show the search results."""
         self.master.show_results(records, lyrics)
 
 
     def stop(self) -> None:
+        """Stop any search in progress."""
         self.cancel_search()
         self.progress_bar.stop()
         self.search_in_progress = False
@@ -648,6 +641,7 @@ class Search(tk.Frame):
 
 
     def tick_progress(self) -> None:
+        """Increment the progress bar."""
         self.progress_bar.step(1)
 
 
@@ -677,9 +671,10 @@ class Search(tk.Frame):
         self.slider_label["text"] = f"Word gap: {int(float(value))}"
 
 if __name__ == "__main__":
-
-
     query = Query(None, "roxann", None)
-
     s = Search(None)
-    s.fuzzy_search(query)
+#     fuzzy_grammar, calls
+#     fuzzy_word_search, which calls
+#     fuzzy_manager, which calls
+#     gap_search, which calls
+#     distant_neighboring_words, the heart of the search
