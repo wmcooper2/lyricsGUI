@@ -370,10 +370,20 @@ class Search(tk.Frame):
         return self.fuzzy_db.fuzzy_artist_and_song(artist, song)
 
 
+    
+    #in progress
     def fuzzy_artist_song(self, query: Query) -> Tuple[DisplayRecord, Optional[Text]]:
         """Perform a fuzzy search for a song written by an artist."""
         #TODO, return DisplayRecord too
-        self.fuzzy_db.fuzzy_artist_and_song(artist, song)
+#         self.fuzzy_db.fuzzy_artist_and_song(artist, song)
+
+        records = self.fuzzy_db.fuzzy_artist_and_song(query.artist, query.song)
+        if len(records) == 1:
+            return (records, records[0].lyrics)
+        else:
+            return (records, None)
+
+
 
 
     def fuzzy_artist_grammar(self, query: Query) -> Tuple[List[DisplayRecord], Optional[Text]]:
@@ -401,13 +411,16 @@ class Search(tk.Frame):
         else:
             return (records, None)
 
-
-    #in progress
+    
+    #done
     def fuzzy_artist(self, query: Query) -> Tuple[List[DisplayRecord], Optional[Text]]:
         """Search for all songs written by similar artists."""
 
-        songs = self.fuzzy_db.fuzzy_songs_from_artist(artist)
-        records = [DisplayRecord(records[0], records[1]) for records in records]
+        records = self.fuzzy_db.fuzzy_songs_from_artist(query.artist)
+        if len(records) == 1:
+            return (records, records[0].lyrics)
+        else:
+            return (records, None)
 
 
     def fuzzy_search(self, query: Query) -> Tuple[List[DisplayRecord], Optional[Text]]:
@@ -442,7 +455,7 @@ class Search(tk.Frame):
 
         #in progress
         elif artist and not song and not grammar:
-            records, lyrics = self.funct(query)
+            records, lyrics = self.fuzzy_artist(query)
 
         else:
             self.input_something_message()

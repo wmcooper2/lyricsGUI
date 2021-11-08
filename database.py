@@ -50,6 +50,12 @@ class Database():
             yield DBRecord(record[0], record[1], record[2], record[3])
         return records
 
+
+    def artist(self, artist: Text) -> Optional[DBRecord]:
+        """Get records of a single artist."""
+        return self.songs_from_artist(artist)
+
+
     #TODO: return DBRecords with None in the song field (for consistency)
     def artists(self) -> List[Tuple[Text]]:
         """Get all artists in database."""
@@ -168,37 +174,113 @@ class FuzzyDatabase(Database):
     def fuzzy_songs_from_artist(self, artist: Text) -> List[DBRecord]:
         """Fuzzy search of songs from 'artist'."""
 
-        self.cur.execute("SELECT artist FROM songs")
-        db_records = self.cur.fetchall()
+        #get all artists
+        self.cur.execute("SELECT DISTINCT(artist) FROM songs")
+        results = self.cur.fetchall()
 
-        #TODO: refactor into function composition?
-        artists = [r[0] for r in db_records]
-        artists = difflib.get_close_matches(artist, artists, n=5)
-        artists = set(artists) #clear out duplicates
-        possible_matches = list(artists)#convert back to list 
+        #convert from List[Tuple] to List[Text]
+        results = [result[0] for result in results]
 
+        #choose most likely artists
+        possible_matches = difflib.get_close_matches(artist, results)
+
+        #make set
+        possible_matches = set(possible_matches)
+        possible_matches = list(possible_matches)
+
+        # perform db search using the top closest matches
         results = list()
-        records = set()
-        if possible_matches:
-            records = set(records)
-            for artist in possible_matches:
-                results = self.songs_from_artist(artist)
-                for result in results:
-                    records.add(result.artist)
-        return results
+        for match in possible_matches:
+            results.append(self.songs_from_artist(match))
+
+        final = [nested for result in results for nested in result]
+        if final:
+            return [DBRecord(record[0], record[1], record[2], record[3]) for record in final]
+        else:
+            return [DBRecord("", "", "", "")]
+
+        #TODO display records in gui
+
+
+
+#         db_records = self.cur.fetchall()
+# 
+#         #TODO: refactor into function composition?
+#         artists = [r[0] for r in db_records]
+#         artists = difflib.get_close_matches(artist, artists, n=5)
+#         artists = set(artists) #clear out duplicates
+#         possible_matches = list(artists)#convert back to list 
+# 
+#         results = list()
+#         records = set()
+#         if possible_matches:
+#             records = set(records)
+#             for artist in possible_matches:
+#                 results = self.songs_from_artist(artist)
+#                 for result in results:
+#                     records.add(result.artist)
+#         return results
 
 
     def fuzzy_artist_and_song(self, artist: Text, song: Text) -> DBRecord:
         """Fuzzy search for a 'song' by an 'artist'."""
 
-        self.cur.execute("SELECT * FROM songs WHERE LOWER(?)=? AND LOWER(?)=?", (artist, artist.lower(), song, song.lower()))
-        result = self.cur.fetchall()
-        result = result[0]
-        if result:
-            return DBRecord(result[0], result[1], result[2], result[3])
-        else:
-            return DBRecord("", "", "", "")
+        #fuzzy search for artists
+        artist_records = set(self.fuzzy_artist(artist))
 
+        #fuzzy search for songs
+        song_records = set(self.fuzzy_song(song))
+
+        #find what's in both sets
+        likely_matches = artist_records.intersection(song_records)
+        matches = list(likely_matches)
+
+#         breakpoint()
+
+#         final = [nested for result in matches for nested in result]
+        if matches:
+            return [DBRecord(match[0], match[1], match[2], match[3]) for match in matches]
+        else:
+            return [DBRecord("", "", "", "")]
+
+
+ 
+        
+
+
+#         result = self.cur.fetchall()
+#         result = result[0]
+#         if result:
+#             return DBRecord(result[0], result[1], result[2], result[3])
+#         else:
+#             return DBRecord("", "", "", "")
+
+    def fuzzy_artist(self, artist: Text) -> List[DBRecord]:
+        """Fuzzy search for 'artist'. Returns list of artists and the song."""
+
+        self.cur.execute("SELECT artist FROM songs")
+        records = self.cur.fetchall()
+        records = [record[0] for record in records]
+
+        # get closest match from all of them
+        possible_matches = difflib.get_close_matches(artist, records)
+        possible_matches = set(possible_matches)
+        possible_matches = list(possible_matches)
+
+        # perform db search using the top closest matches
+        results = list()
+        for match in possible_matches:
+            results.append(self.artist(match))
+
+        #flatten the list
+        final = [nested for result in results for nested in result]
+        if final:
+            return [DBRecord(record[0], record[1], record[2], record[3]) for record in final]
+        else:
+            return [DBRecord("", "", "", "")]
+
+
+ 
     #done
     def fuzzy_song(self, song: Text) -> List[DBRecord]:
         """Fuzzy search for 'song'. Returns list of artists and the song."""
@@ -219,7 +301,6 @@ class FuzzyDatabase(Database):
 
         #flatten the list
         final = [nested for result in results for nested in result]
-
         if final:
             return [DBRecord(record[0], record[1], record[2], record[3]) for record in final]
         else:
@@ -285,4 +366,4 @@ if __name__ == "__main__":
 
     db = FuzzyDatabase()
 #     db.fuzzy_song("call in he familt")
-    list_print(db.fuzzy_song("roxann"))
+    list_print(db.fuzzy_songs_from_artist("the police"))
