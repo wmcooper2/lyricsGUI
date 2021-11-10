@@ -46,6 +46,7 @@ class Search(tk.Frame):
         self.cancel_flag = False
         self.search_in_progress = False
         self.index = 0
+        self.step = 100
         self.db = Database()
         self.fuzzy_db = FuzzyDatabase()
         self.song_count = self.db.record_count()
@@ -444,7 +445,7 @@ class Search(tk.Frame):
         #TODO, relies only on self.fuzzy_grammar()
         elif not artist and not song and grammar:
             gap = self.slider.get()
-            records, lyrics = self.funct(query)
+            records, lyrics = self.fuzzy_grammar(query, gap)
 
         #done
         elif not artist and song and not grammar:
@@ -485,7 +486,7 @@ class Search(tk.Frame):
             self.toggle_fuzzy_search()
 
 
-    def fuzzy_word_search(self, pattern: Text, limit: int, gap: int):
+    def fuzzy_word_search(self, pattern: Text, limit: int, gap: int) -> None:
         """Search for 'pattern' with max 'gap' between any pairs of neighboring words in 'pattern' through all lyrics."""
 
         #set up the gui for threaded search
@@ -496,39 +497,53 @@ class Search(tk.Frame):
         self.results = []
         self.cancel_flag = False
         self.index = 0
+
+        matches = []
+        for index, record in enumerate(self.db.all_records()):
+            if self.gap_search(pattern, gap):
+                matches.append(record)
+            print("Progress:", index, end="\r") 
+        
+
+
+        #not working anymore
 #         print(f"fuzzy_word_search(): pattern={pattern}, limit={limit}, gap={gap}")
 #         print(f"{fuzzy_word_search.__name__}(), ")
 
-        try:
-            manager_thread = threading.Thread(target=self.fuzzy_manager, args=(pattern, limit, gap))
-            manager_thread.start()
-        except RuntimeError:
-            logging.debug(f"RuntimeError, {fuzzy_word_search.__name__}(): pattern={pattern}")
+#         try:
+#             manager_thread = threading.Thread(target=self.fuzzy_manager, args=(pattern, limit, gap))
+#             manager_thread.start()
+#         except RuntimeError:
+#             logging.debug(f"RuntimeError, {fuzzy_word_search.__name__}(): pattern={pattern}")
 
-
-    def gap_search(self, words: Text="", gap: int=0) -> List:
+    
+    #In progress... the next problem is in this method
+    #TODO, make custom return type
+#     def gap_search(self, words: Text="", gap: int=0) -> List:
+    def gap_search(self, words: Text="", gap: int=0) -> Optional[List]:
         """Searches for all 'words' with max 'gap' between any neighboring pair of words."""
-        #TODO, define return type, use namedtuple
 
-
-        def _gap_search_result(result: str) -> bool:
+        def _gap_search_result(result: Text) -> bool:
             """Convert the result into a boolean."""
+            breakpoint()
             if result.endswith("True"):
                 final_seq = result.rstrip("True")
                 return True
             else:
                 return False
+
         #start here
         if words:
             gap = int(gap)
             for i, artist, song, lyrics in self.db.index_search(self.index, self.step):
-                if lyrics is not None and words is not None:
+                if lyrics is not None:
                     lyrics = lyrics.split(" ")
                     words = words.split(" ")
                     #TODO: remove punct from words and lyrics? 
                     answer = self.distant_neighboring_words(lyrics, words, gap)
                     return _gap_search_result(answer)
         return []
+#         return None
 
 
     def input_something_message(self) -> None:
